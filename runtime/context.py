@@ -37,6 +37,9 @@ class RuntimeContext:
 
         self.current_testcase = None
 
+        self.pcap_process = None
+        self.pcap_file = None
+
     def summary(self):
         """
         Return basic execution summary.

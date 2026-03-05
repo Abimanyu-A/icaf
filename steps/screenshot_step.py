@@ -1,5 +1,6 @@
 import subprocess
 from core.step import Step
+from utils.logger import logger
 
 
 class ScreenshotStep(Step):
@@ -18,6 +19,8 @@ class ScreenshotStep(Step):
         path = context.evidence.screenshot_path(clause, testcase)
 
         file = f"{path}/{self.terminal}.png"
+
+        logger.info(f"Taking screenshot: {file}")
 
         subprocess.run(["scrot", file])
 

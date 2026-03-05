@@ -5,6 +5,10 @@ from steps.command_step import CommandStep
 from steps.expect_one_of_step import ExpectOneOfStep
 from steps.screenshot_step import ScreenshotStep
 from steps.input_step import InputStep
+from steps.pcap_start_step import PcapStartStep
+from steps.pcap_stop_step import PcapStopStep
+from steps.analyze_pcap_step import AnalyzePcapStep
+from steps.wireshark_packet_screenshot_step import WiresharkPacketScreenshotStep
 
 from utils.logger import logger
 
@@ -27,6 +31,7 @@ class TC1SSHFirstConnection(TestCase):
         tm.create_terminal("tester")
 
         StepRunner([
+            PcapStartStep(interface="eth0", filename="tc1_ssh_auth.pcapng"),
             CommandStep("tester", ssh_cmd)
         ]).run(context)
 
@@ -59,7 +64,16 @@ class TC1SSHFirstConnection(TestCase):
             logger.info("Password prompt detected")
 
             StepRunner([
-                InputStep("tester", context.ssh_password)
+                InputStep("tester", context.ssh_password),
+                PcapStopStep()
+            ]).run(context)
+
+            StepRunner([
+                AnalyzePcapStep("ssh")
+            ]).run(context)
+
+            StepRunner([
+                WiresharkPacketScreenshotStep()
             ]).run(context)
 
             ScreenshotStep("tester").execute(context)
