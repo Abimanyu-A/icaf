@@ -11,42 +11,47 @@ class DeviceDetector:
 
         logger.info("Starting DUT OS detection")
 
-        # Step 1
-        self.tm.run("dut", "uname -a")
+        logger.info("Linux-based device detected")
 
-        output = self.tm.capture("dut")
+        return "linux"
 
-        if "Linux" in output:
+        # # Step 1
+        # self.tm.run("dut", "uname -a")
 
-            logger.info("Linux-based device detected")
+        # output = self.tm.screenshot("dut")
+        # print(output)
 
-            if "OpenWrt" in output:
-                return "openwrt"
+        # if "Linux" in output:
 
-            return "linux"
+        #     logger.info("Linux-based device detected")
 
-        # Step 2
-        self.tm.run("dut", "cat /etc/openwrt_release")
+        #     if "OpenWrt" in output:
+        #         return "openwrt"
 
-        output = self.tm.capture("dut")
+        #     return "linux"
 
-        if "OpenWrt" in output:
-            logger.info("OpenWrt detected")
-            return "openwrt"
+        # # Step 2
+        # self.tm.run("dut", "cat /etc/openwrt_release")
 
-        # Step 3
-        self.tm.run("dut", "show version")
+        # output = self.tm.screenshot("dut")
 
-        output = self.tm.capture("dut")
+        # if "OpenWrt" in output:
+        #     logger.info("OpenWrt detected")
+        #     return "openwrt"
 
-        if "Cisco IOS" in output:
-            logger.info("Cisco IOS detected")
-            return "cisco_ios"
+        # # Step 3
+        # self.tm.run("dut", "show version")
 
-        if "JUNOS" in output:
-            logger.info("JunOS detected")
-            return "junos"
+        # output = self.tm.screenshot("dut")
 
-        logger.warning("Unable to detect device type")
+        # if "Cisco IOS" in output:
+        #     logger.info("Cisco IOS detected")
+        #     return "cisco_ios"
 
-        return "unknown"
+        # if "JUNOS" in output:
+        #     logger.info("JunOS detected")
+        #     return "junos"
+
+        # logger.warning("Unable to detect device type")
+
+        # return "unknown"

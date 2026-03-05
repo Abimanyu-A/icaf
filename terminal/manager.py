@@ -54,3 +54,12 @@ class TerminalManager:
             raise Exception("Terminal not found")
 
         return terminal.capture()
+    
+    def capture_output(self, terminal_name):
+
+        terminal = self.get_terminal(terminal_name)
+
+        if not terminal:
+            raise Exception(f"Terminal not found: {terminal_name}")
+
+        return terminal.capture_output()

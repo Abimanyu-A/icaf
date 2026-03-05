@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from evidence.manager import EvidenceManager
 
 
 class RuntimeContext:
@@ -7,7 +8,7 @@ class RuntimeContext:
     Shared runtime state used across the TCAF framework.
     """
 
-    def __init__(self, clause=None, section=None):
+    def __init__(self, clause=None, section=None, ssh_user=None, ssh_ip=None, ssh_password=None):
 
         self.execution_id = str(uuid.uuid4())
 
@@ -16,6 +17,9 @@ class RuntimeContext:
         # CLI parameters
         self.clause = clause
         self.section = section
+        self.ssh_user = ssh_user
+        self.ssh_ip = ssh_ip
+        self.ssh_password = ssh_password
 
         # Core subsystems (initialized later)
         self.ssh_connection = None
@@ -29,7 +33,9 @@ class RuntimeContext:
         self.adapter = None
 
         # Evidence tracking
-        self.evidence = []
+        self.evidence = EvidenceManager()
+
+        self.current_testcase = None
 
     def summary(self):
         """

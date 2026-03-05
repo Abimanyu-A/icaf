@@ -17,12 +17,16 @@ def run(
     
     logger.info("TCAF CLI started")
     
-    ssh_command = input("Enter SSH command to connect to DUT: ")
+    ssh_user = input("Enter SSH username: ")
+    ssh_ip = input("Enter DuT IP: ")
+    ssh_password = input("Enter SSH password: ")
     
     engine = Engine(
         clause=clause,
         section=section,
-        ssh_command=ssh_command
+        ssh_user=ssh_user,
+        ssh_ip=ssh_ip,
+        ssh_password=ssh_password
     )
 
     engine.start()

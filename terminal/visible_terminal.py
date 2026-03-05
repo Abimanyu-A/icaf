@@ -6,22 +6,28 @@ from terminal.base_terminal import BaseTerminal
 
 class VisibleTerminal(BaseTerminal):
 
-    def __init__(self, name: str):
+    def __init__(self, name):
 
         super().__init__(name)
 
-        self.title = f"TCAF-{name}"
-        self.window_id = None
+        self.session = f"TCAF-{name}"
 
-        logger.info(f"Launching visible terminal: {self.title}")
+        logger.info(f"Creating tmux session: {self.session}")
 
-        subprocess.Popen(
-            [
-                "gnome-terminal",
-                "--title",
-                self.title
-            ]
+        subprocess.run(
+            ["tmux", "new-session", "-d", "-s", self.session]
         )
+
+        logger.info(f"Launching visible terminal for {self.session}")
+
+        subprocess.Popen([
+            "gnome-terminal",
+            "--",
+            "tmux",
+            "attach",
+            "-t",
+            self.session
+        ])
 
         time.sleep(1)
 
@@ -29,45 +35,42 @@ class VisibleTerminal(BaseTerminal):
 
     def _find_window(self):
 
-        try:
-            result = subprocess.run(
-                ["xdotool", "search", "--name", self.title],
-                capture_output=True,
-                text=True
-            )
+        for _ in range(20):
 
-            window_id = result.stdout.strip().split("\n")[0]
+            try:
+                result = subprocess.run(
+                    ["xdotool", "search", "--onlyvisible", "--class", "gnome-terminal"],
+                    capture_output=True,
+                    text=True
+                )
 
-            logger.info(f"{self.title} window id: {window_id}")
+                ids = result.stdout.strip().split()
 
-            return window_id
+                if ids:
+                    window_id = ids[-1]  # newest window
+                    logger.info(f"{self.title} window id: {window_id}")
+                    return window_id
 
-        except Exception:
-            logger.error("Failed to find terminal window")
-            return None
+            except Exception as e:
+                logger.debug(f"xdotool search failed: {e}")
 
-    def run(self, command: str):
+            time.sleep(0.5)
+
+        logger.error("Failed to find terminal window")
+        return None
+
+    def run(self, command):
 
         logger.info(f"[{self.name}] {command}")
 
-        subprocess.run(
-            [
-                "xdotool",
-                "windowactivate",
-                "--sync",
-                self.window_id,
-                "type",
-                command
-            ]
-        )
-
-        subprocess.run(
-            [
-                "xdotool",
-                "key",
-                "Return"
-            ]
-        )
+        subprocess.run([
+            "tmux",
+            "send-keys",
+            "-t",
+            self.session,
+            command,
+            "Enter"
+        ])
 
     def capture(self):
 
@@ -83,3 +86,19 @@ class VisibleTerminal(BaseTerminal):
         )
 
         return screenshot_path
+    
+    def capture_output(self):
+
+        result = subprocess.run(
+            [
+                "tmux",
+                "capture-pane",
+                "-t",
+                self.session,
+                "-p"
+            ],
+            capture_output=True,
+            text=True
+        )
+
+        return result.stdout

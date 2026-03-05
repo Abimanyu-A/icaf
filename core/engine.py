@@ -3,17 +3,20 @@ from config.settings import settings
 from runtime.context import RuntimeContext
 from terminal.manager import TerminalManager
 from device.detector import DeviceDetector
+from clauses.clause_1_1_1.clause import Clause_1_1_1
 import time
 
 
 class Engine:
 
-    def __init__(self, clause=None, section=None, ssh_command=None):
+    def __init__(self, clause=None, section=None, ssh_user=None, ssh_ip=None, ssh_password=None):
 
         self.context = RuntimeContext(
             clause=clause,
             section=section,
-            ssh_command=ssh_command
+            ssh_user=ssh_user,
+            ssh_ip=ssh_ip,
+            ssh_password=ssh_password
         )
 
         logger.info("Engine initialized")
@@ -46,26 +49,35 @@ class Engine:
 
         # Create terminals
         tm.create_terminal("dut")
-        tm.create_terminal("client")
-        tm.create_terminal("monitor")
-        tm.create_terminal("local")
 
         logger.info("Terminals created")
+        self.context.clause = "clause_1_1_1"
 
         # Connect DUT via SSH
-        if self.context.ssh_command:
-            logger.info("Connecting to DUT via SSH")
+        # if self.context.ssh_command:
+        #     logger.info("Connecting to DUT via SSH")
 
-            tm.run("dut", self.context.ssh_command)
+        #     tm.run("dut", self.context.ssh_command)
             
-            time.sleep(3)
+        #     time.sleep(3)
             
-            detector = DeviceDetector(self.context.terminal_manager)
+        #     detector = DeviceDetector(self.context.terminal_manager)
 
-            device_type = detector.detect()
+        #     device_type = detector.detect()
 
-            self.context.device_type = device_type
+        #     self.context.device_type = device_type
+            
+        #     tm.screenshot("dut")
 
-            logger.info(f"DUT device type: {device_type}")
+        #     logger.info(f"DUT device type: {device_type}")
+
+
+        clause = Clause_1_1_1(self.context)
+
+        results = clause.run()
+
+        for tc in results:
+
+            logger.info(f"{tc.name} → {tc.status}")
 
         logger.info("Runtime environment ready")
