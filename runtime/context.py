@@ -40,6 +40,15 @@ class RuntimeContext:
         self.pcap_process = None
         self.pcap_file = None
 
+        self.browser = None
+
+        self.dut_model = "Metasploitable 2"
+        self.dut_serial = "332373013881"
+        self.dut_firmware = "7.0.0.0.6365"
+
+        self.itsar_section = "1.1 Access and Authorization"
+        self.itsar_requirement = "1.1.1 Management Protocols Entity Mutual Authentication"
+
     def summary(self):
         """
         Return basic execution summary.

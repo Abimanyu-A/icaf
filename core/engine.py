@@ -2,7 +2,9 @@ from utils.logger import logger
 from runtime.context import RuntimeContext
 from core.clause_runner import ClauseRunner
 from terminal.manager import TerminalManager
-from reporting.pdf_generator import PDFGenerator
+from reporting.pdf_generator import DOCXGenerator
+from browser.manager import BrowserManager
+
 
 class Engine:
 
@@ -44,7 +46,7 @@ class Engine:
             logger.info(f"{tc.name} → {tc.status}")
 
         # Generate PDF report
-        reporter = PDFGenerator(self.context.evidence.run_dir)
+        reporter = DOCXGenerator(self.context.evidence.run_dir)
 
         report_file = reporter.generate(self.context, results)
 
@@ -56,5 +58,14 @@ class Engine:
 
         # Initialize terminal manager
         self.context.terminal_manager = TerminalManager()
+        self.context.browser = BrowserManager()
+
+        tm = self.context.terminal_manager
+
+        # Create shared terminals
+        tm.create_terminal("tester")
+        tm.create_terminal("dut")
+
+        logger.info("Terminals created")
 
         logger.info("Terminal manager initialized")

@@ -9,6 +9,7 @@ from steps.pcap_start_step import PcapStartStep
 from steps.pcap_stop_step import PcapStopStep
 from steps.analyze_pcap_step import AnalyzePcapStep
 from steps.wireshark_packet_screenshot_step import WiresharkPacketScreenshotStep
+from steps.session_reset_step import SessionResetStep
 
 from utils.logger import logger
 
@@ -25,10 +26,6 @@ class TC1SSHFirstConnection(TestCase):
     def run(self, context):
 
         ssh_cmd = f"ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa {context.ssh_user}@{context.ssh_ip}"
-
-        tm = context.terminal_manager
-
-        tm.create_terminal("tester")
 
         StepRunner([
             PcapStartStep(interface="eth0", filename="tc1_ssh_auth.pcapng"),
