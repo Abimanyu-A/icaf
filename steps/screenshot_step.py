@@ -26,6 +26,6 @@ class ScreenshotStep(Step):
 
         logger.info(f"Taking screenshot of terminal: {self.terminal}")
 
-        context.current_testcase.add_evidence(file)
+        context.current_testcase.add_evidence(screenshot=file)
 
         return terminal.capture(file)

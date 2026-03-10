@@ -19,10 +19,12 @@ PURPLE_HEX   = "4B0082"
 LIGHT_PURPLE = "F3ECFA"               # screenshot block background
 
 
-class DOCXGenerator:
+class Clause111Report:
 
-    def __init__(self, output_dir):
-        self.output_dir = output_dir
+    def __init__(self, context, results):
+        self.context = context
+        self.results = results
+        self.output_dir = context.evidence.run_dir
 
     # ─────────────────────────────────────────
     # HEADING  (purple text + purple underline)
@@ -1061,32 +1063,31 @@ class DOCXGenerator:
     # ─────────────────────────────────────────
     # GENERATE REPORT  (main entry point)
     # ─────────────────────────────────────────
-    def generate(
-        self,
-        context,
-        results,
-        meta=None,
-        nmap_data=None,
-        cipher_data=None,
-        ssh_data=None,
-        weak_cipher_result=None,
-        https_cipher_data=None,
-        https_data=None,
-        testbed_image_path=None,
-    ):
+    def generate(self):
         """
         Generate the full ITSAR compliance report.
-
-        Required:
-            context  – object with dut_model, dut_serial, dut_firmware, ssh_ip,
-                       itsar_section, itsar_requirement
-            results  – list of objects with .name, .description, .status, .evidence,
-                       optionally .remarks
-
-        Optional keyword data dicts (same structure as the second script):
-            meta, nmap_data, cipher_data, ssh_data, weak_cipher_result,
-            https_cipher_data, https_data, testbed_image_path
+        Uses self.context and self.results set during __init__.
+        Optional data is pulled from context attributes if present.
         """
+        context            = self.context
+        results            = self.results
+        meta               = getattr(context, "meta", None) or {
+            "dut_name":      getattr(context, "dut_name",      "N/A"),
+            "dut_version":   getattr(context, "dut_version",   "N/A"),
+            "os_hash":       getattr(context, "os_hash",       "N/A"),
+            "config_hash":   getattr(context, "config_hash",   "N/A"),
+            "itsar_id":      getattr(context, "clause",        "N/A"),
+            "itsar_version": "1.0",
+            "final_result":  "PASS" if all(getattr(r, "status", "FAIL") == "PASS" for r in results) else "FAIL",
+        }
+        nmap_data          = getattr(context, "nmap_data",          None)
+        cipher_data        = getattr(context, "cipher_data",        None)
+        ssh_data           = getattr(context, "ssh_data",           None)
+        weak_cipher_result = getattr(context, "weak_cipher_result", None)
+        https_cipher_data  = getattr(context, "https_cipher_data",  None)
+        https_data         = getattr(context, "https_data",         None)
+        testbed_image_path = getattr(context, "testbed_image_path", None)
+
         report_path = os.path.join(self.output_dir, "tcaf_report.docx")
         doc = Document()
 

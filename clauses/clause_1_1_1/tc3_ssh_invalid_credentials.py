@@ -23,6 +23,8 @@ class TC3SSHInvalidCredentials(TestCase):
 
         ssh_cmd = f"ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa {context.ssh_user}@{context.ssh_ip}"
 
+        tm = context.terminal_manager
+
         StepRunner([
             SessionResetStep("tester"),
             CommandStep("tester", ssh_cmd)
@@ -50,22 +52,18 @@ class TC3SSHInvalidCredentials(TestCase):
 
         if pattern == "password":
 
+            # try wrong password multiple times
             StepRunner([
+                InputStep("tester", "wrongpassword"),
+                InputStep("tester", "wrongpassword"),
                 InputStep("tester", "wrongpassword")
             ]).run(context)
 
-            pattern, output = ExpectOneOfStep(
-                "tester",
-                [
-                    "permission denied",
-                    "$",
-                    "#"
-                ]
-            ).execute(context)
+            output = tm.capture_output("tester")
 
-            if pattern == "permission denied":
+            if "Permission denied" in output:
 
-                logger.info("Invalid login correctly rejected")
+                logger.info("Invalid credentials correctly rejected")
 
                 ScreenshotStep("tester").execute(context)
 
@@ -73,15 +71,13 @@ class TC3SSHInvalidCredentials(TestCase):
 
                 return self
 
-            if pattern in ["$", "#"]:
+            logger.error("SSH login succeeded with invalid credentials")
 
-                logger.error("Login succeeded with invalid credentials")
+            ScreenshotStep("tester").execute(context)
 
-                ScreenshotStep("tester").execute(context)
+            self.fail_test()
 
-                self.fail_test()
-
-                return self
+            return self
 
         if pattern == "connection refused":
 

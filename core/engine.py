@@ -2,8 +2,9 @@ from utils.logger import logger
 from runtime.context import RuntimeContext
 from core.clause_runner import ClauseRunner
 from terminal.manager import TerminalManager
-from reporting.pdf_generator import DOCXGenerator
 from browser.manager import BrowserManager
+from reporting.report_manager import ReportManager
+from utils.dut_info import get_dut_info
 
 
 class Engine:
@@ -45,12 +46,9 @@ class Engine:
         for tc in results:
             logger.info(f"{tc.name} → {tc.status}")
 
-        # Generate PDF report
-        reporter = DOCXGenerator(self.context.evidence.run_dir)
+        report_manager = ReportManager()
 
-        report_file = reporter.generate(self.context, results)
-
-        logger.info(f"PDF report generated: {report_file}")
+        report_manager.generate(self.context, results)
 
     def initialize_runtime(self):
 
@@ -67,5 +65,20 @@ class Engine:
         tm.create_terminal("dut")
 
         logger.info("Terminals created")
+
+        logger.info("Collecting DUT information")
+
+        dut_info = get_dut_info(
+            self.context.ssh_user,
+            self.context.ssh_ip
+        )
+
+        self.context.dut_name = dut_info["dut_name"]
+        self.context.dut_version = dut_info["dut_version"]
+        self.context.os_hash = dut_info["os_hash"]
+        self.context.config_hash = dut_info["config_hash"]
+
+        logger.info(f"DUT Name: {self.context.dut_name}")
+        logger.info(f"DUT Version: {self.context.dut_version}")
 
         logger.info("Terminal manager initialized")

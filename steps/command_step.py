@@ -15,3 +15,10 @@ class CommandStep(Step):
         tm = context.terminal_manager
 
         tm.run(self.terminal, self.command)
+
+        output = tm.capture_output(self.terminal)
+
+        context.current_testcase.add_evidence(
+            command=self.command,
+            output=output
+        )

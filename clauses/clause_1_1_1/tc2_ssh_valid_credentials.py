@@ -23,6 +23,8 @@ class TC2SSHValidCredentials(TestCase):
 
         ssh_cmd = f"ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa {context.ssh_user}@{context.ssh_ip}"
 
+        tm = context.terminal_manager
+
         StepRunner([
             SessionResetStep("tester"),
             CommandStep("tester", ssh_cmd)
@@ -54,29 +56,30 @@ class TC2SSHValidCredentials(TestCase):
                 InputStep("tester", context.ssh_password)
             ]).run(context)
 
-            # wait for shell prompt
-            pattern, output = ExpectOneOfStep(
-                "tester",
-                ["$", "#", "permission denied"]
-            ).execute(context)
+            # verify connection by executing command
+            StepRunner([
+                CommandStep("tester", "whoami")
+            ]).run(context)
 
-            if pattern in ["$", "#"]:
+            output = tm.capture_output("tester")
 
-                logger.info("SSH login successful")
+            if context.ssh_user in output:
+
+                logger.info("SSH login verified using command execution")
 
                 ScreenshotStep("tester").execute(context)
 
                 self.pass_test()
+
                 return self
 
-            if pattern == "permission denied":
+            logger.error("SSH login failed despite valid credentials")
 
-                logger.error("SSH login failed with valid credentials")
+            ScreenshotStep("tester").execute(context)
 
-                ScreenshotStep("tester").execute(context)
+            self.fail_test()
 
-                self.fail_test()
-                return self
+            return self
 
         if pattern == "connection refused":
 

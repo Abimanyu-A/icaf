@@ -20,4 +20,4 @@ class BrowserScreenshotStep(Step):
 
         context.browser.driver.save_screenshot(file)
 
-        context.current_testcase.add_evidence(file)
+        context.current_testcase.add_evidence(screenshot=file)

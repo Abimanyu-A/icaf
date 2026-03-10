@@ -1,4 +1,5 @@
 from core.step import Step
+import time
 
 
 class InputStep(Step):
@@ -15,3 +16,5 @@ class InputStep(Step):
         tm = context.terminal_manager
 
         tm.run(self.terminal, self.text)
+
+        time.sleep(3)

@@ -41,7 +41,7 @@ class WiresharkPacketScreenshotStep(Step):
 
         logger.info(f"Packet screenshot saved: {screenshot_file}")
 
-        context.current_testcase.add_evidence(screenshot_file)
+        context.current_testcase.add_evidence(screenshot=screenshot_file)
 
         # Close Wireshark
         logger.info("Closing Wireshark")
