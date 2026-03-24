@@ -17,9 +17,9 @@ import yaml
 
 console = Console()
 
-DEFAULT_SSH_USER = "root"
-DEFAULT_SSH_IP = "10.143.115.34"
-DEFAULT_SSH_PASSWORD = ""
+DEFAULT_SSH_USER = "msfadmin"
+DEFAULT_SSH_IP = "10.143.115.214"
+DEFAULT_SSH_PASSWORD = "msfadmin"
 
 DEFAULT_SNMP_USER = "snmpuser"
 DEFAULT_SNMP_AUTH_PASS = "authpass"
@@ -109,7 +109,7 @@ def run(
     web_username = None
     web_password = None
 
-    if clause == "1.1.1":
+    if clause == "1.1.1" or "1.1":
 
         console.print("\n[bold yellow]SNMPv3 Configuration[/bold yellow]\n")
 

@@ -102,6 +102,7 @@ class Engine:
         logger.info("Collecting DUT information")
 
         dut_info = get_dut_info(
+            self.context.profile,
             self.context.ssh_user,
             self.context.ssh_ip,
             self.context.ssh_password

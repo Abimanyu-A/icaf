@@ -1,12 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# DUT Profile — WatchDog Router WD4520-X1
+# Used by: ICAF ProfileLoader (context.profile)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Changes from original profile
+# ──────────────────────────────
+# ssh:
+#   • Renamed invalid_password → bad_password  (matched TC3 key)
+#   • Added pubkey.*  section for TC4/TC5
+#
+# snmp:
+#   • Added target, user, auth_pass, priv_pass, bad_auth_pass, community
+#     (profile had only pre-built command strings with {placeholders};
+#      TCs now build commands themselves and pull values from these keys)
+#
+# web:  (replaces / extends https:)
+#   • Added full web section: login_url, credentials, field selectors,
+#     dashboard/error indicators
+#   • Original https.login_path kept for backward compatibility
+#
+# grpc:  (entirely new)
+#   • Added full grpc section for TC8
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── SSH ───────────────────────────────────────────────────────────────────────
 ssh:
-  connect_command: "ssh -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa {user}@{ip}"
+  binary: ssh
+  target: "{user}@{ip}"
+
+  # Options appended to every ssh command built by TC3 / TC4 / TC5
+  connect_options:
+    - -o
+    - HostKeyAlgorithms=+ssh-rsa
+    - -o
+    - PubkeyAcceptedAlgorithms=+ssh-rsa
+    - -o
+    - StrictHostKeyChecking=no
+
+  # Legacy SSHv1 test command (TC3 nmap scan reference)
   ssh_v1_command: "ssh -1 {user}@{ip}"
 
+  # ── Pattern lists (used by ExpectOneOfStep) ────────────────────────────
   fingerprint_prompt:
     - "continue connecting"
 
   password_prompt:
     - "password"
+    - "Password"
 
   success_prompt:
     - "$"
@@ -16,13 +56,123 @@ ssh:
   failure_prompt:
     - "Permission denied"
     - "connection refused"
+    - "Connection refused"
+    - "No route to host"
 
-  invalid_password: "wrongpassword"
+  # ── Credentials ────────────────────────────────────────────────────────
+  # bad_password: deliberately wrong password used in TC3 negative case
+  bad_password: "wrongpassword"
 
+  # ── Public key authentication (TC4 / TC5) ──────────────────────────────
+  pubkey:
+    # Local path on the tester machine for the *correct* ECDSA key pair
+    key_path: "~/.ssh/id_ecdsaa"
+
+    # Local path for the *wrong* (unregistered) key pair used in TC5
+    wrong_key_path: "~/.ssh/wrong_keyy"
+
+    # Name used when importing the public key into the DUT PKI store
+    dut_key_name: "PUBBKEY"
+
+    # Local user created on the DUT and bound to the public key
+    dut_user: "Test5"
+
+  # ── Commands sent after login to verify/inspect session ────────────────
   commands:
     verify_login: "whoami"
+    ssh_server_status: "display ssh server status"
+    log_buffer: "display logbuffer"
+
+  # ── DUT information commands (used by get_dut_info()) ──────────────────
+  dut_info:
+    hostname_command: "hostname"
+    os_release_command: "cat /etc/os-release"
+    os_hash_command: "sha256sum /etc/os-release 2>/dev/null | awk '{print $1}'"
+    config_hash_command: "sha256sum /etc/ssh/sshd_config 2>/dev/null | awk '{print $1}'"
 
 
+# ── SNMP ──────────────────────────────────────────────────────────────────────
+snmp:
+  # DUT management IP for SNMP — defaults to context.ssh_ip if not set
+  target: ""    # leave blank to fall back to context.ssh_ip at runtime
+
+  # ── SNMPv3 user credentials (TC1 / TC2) ───────────────────────────────
+  user:      "User1"
+  auth_pass: "Test@123"
+  priv_pass: "Test@123"
+
+  # Wrong auth password used in TC2 negative case
+  bad_auth_pass: "WrongPass@999"
+
+  # Community string used for legacy v1/v2c probes (TC1 disabled check)
+  community: "public"
+
+  # ── Pre-built command templates (kept for backward compatibility) ───────
+  # Placeholders: {ip}, {user}, {auth_pass}, {priv_pass}, {wrong_auth},
+  #               {wrong_priv}, {community}
+  v1_command:  "snmpwalk -v1 -c public {ip}"
+  v2_command:  "snmpwalk -v2c -c public {ip}"
+
+  v3_valid_command: >-
+    snmpget -v3 -u {user} -l authPriv
+    -a SHA -A {auth_pass} -x AES -X {priv_pass}
+    {ip} 1.3.6.1.2.1.1.3.0
+
+  v3_wrong_auth_command: >-
+    snmpget -v3 -u {user} -l authPriv
+    -a SHA -A {wrong_auth} -x AES -X {priv_pass}
+    {ip} 1.3.6.1.2.1.1.3.0
+
+  v3_wrong_priv_command: >-
+    snmpget -v3 -u {user} -l authPriv
+    -a SHA -A {auth_pass} -x AES -X {wrong_priv}
+    {ip} 1.3.6.1.2.1.1.3.0
+
+  get_uptime_v2: "snmpget -v2c -c {community} {ip} 1.3.6.1.2.1.1.3.0"
+
+  # ── Pattern lists ──────────────────────────────────────────────────────
+  success_indicators:
+    - "Timeticks"
+    - "iso."
+    - "STRING"
+    - "INTEGER"
+
+  failure_indicators:
+    - "Timeout"
+    - "authenticationFailure"
+    - "Authentication failure"
+    - "No Response"
+    - "No response"
+
+
+# ── WEB / HTTPS ───────────────────────────────────────────────────────────────
+web:
+  # Full login URL — scheme + host are filled at runtime using context.ssh_ip
+  # Override this with a literal URL if the web port or path differs.
+  login_url: "https://{ip}/"
+
+  # ── Credentials ────────────────────────────────────────────────────────
+  username: "admin"
+  password: "Admin@123"        # correct password for TC6
+
+  # Wrong password used in TC7 negative case
+  bad_password: "WrongAdmin@999!"
+
+  # ── Selenium CSS selectors for the login form ──────────────────────────
+  # These cover the WatchDog web UI.  Adjust if the DUT uses different names.
+  user_field_selector:  "input[name='username'], #username, input[type='text']"
+  pass_field_selector:  "input[name='password'], #password, input[type='password']"
+  submit_selector:      "button[type='submit'], input[type='submit'], .btn-login, input[name='Login']"
+
+  # ── Pattern lists (used by VerifyOutputStep) ───────────────────────────
+  # Text that must appear on the page after a SUCCESSFUL login (TC6)
+  dashboard_indicator: "System Information,Dashboard,logout,Logout,index.asp,Quick Access"
+
+  # Text that must appear on the page after a FAILED login (TC7)
+  login_error_indicator: "Failed to log in,Invalid credentials,Login failed,Incorrect,login failed,incorrect"
+
+  # ── Backward-compatible https keys ────────────────────────────────────
+  # (kept so existing code referencing profile.get("https.*") still works)
 https:
   login_path: "/dvwa/login.php"
 
@@ -36,6 +186,7 @@ https:
     - "incorrect"
 
 
+# ── TLS ───────────────────────────────────────────────────────────────────────
 tls:
   tls10_test_command: "openssl s_client -connect {ip}:443 -tls1"
   tls11_test_command: "openssl s_client -connect {ip}:443 -tls1_1"
@@ -43,74 +194,78 @@ tls:
   failure_indicators:
     - "error"
     - "protocol version"
+    - "handshake failure"
 
   success_indicator:
     - "Cipher"
+    - "TLS"
+
+  cipher_scan:
+    deprecated_ciphers:
+      - "RC4"
+      - "3DES"
+      - "DES"
+      - "MD5"
+      - "EXPORT"
+      - "NULL"
+    scan_command: "nmap --script ssl-enum-ciphers -p 443 {ip}"
 
 
-cipher_scan:
-  deprecated_ciphers:
-    - "RC4"
-    - "3DES"
-    - "DES"
-    - "MD5"
-    - "EXPORT"
-    - "NULL"
+# ── gRPC / gNMI ───────────────────────────────────────────────────────────────
+grpc:
+  # Common name used in the client certificate CSR subject
+  # Defaults to context.ssh_ip at runtime if left blank
+  dut_cn: ""
 
-  scan_command: "nmap --script ssl-enum-ciphers -p 443 {ip}"
+  # PKI domain name configured on the DUT
+  pki_domain: "grpc_pki"
 
+  # gRPC service port configured on the DUT
+  port: "50051"
 
-snmp:
+  # ── Local gRPC user created on DUT (TC8) ──────────────────────────────
+  dut_user:     "Test1"
+  dut_password: "Admin@123"
 
-  # SNMPv1 test
-  v1_command: "snmpwalk -v1 -c public {ip}"
-
-  # SNMPv2 test
-  v2_command: "snmpwalk -v2c -c public {ip}"
-
-  # SNMPv3 VALID AUTHENTICATION + ENCRYPTION
-  v3_valid_command: >
-    snmpget -v3
-    -u {user}
-    -l authPriv
-    -a SHA
-    -A {auth_pass}
-    -x AES
-    -X {priv_pass}
-    {ip}
-    1.3.6.1.2.1.1.3.0
-
-  # SNMPv3 WRONG AUTH PASSWORD
-  v3_wrong_auth_command: >
-    snmpget -v3
-    -u {user}
-    -l authPriv
-    -a SHA
-    -A {wrong_auth}
-    -x AES
-    -X {priv_pass}
-    {ip}
-    1.3.6.1.2.1.1.3.0
-
-  # SNMPv3 WRONG ENCRYPTION PASSWORD
-  v3_wrong_priv_command: >
-    snmpget -v3
-    -u {user}
-    -l authPriv
-    -a SHA
-    -A {auth_pass}
-    -x AES
-    -X {wrong_priv}
-    {ip}
-    1.3.6.1.2.1.1.3.0
-
-  get_uptime_v2: snmpget -v2c -c {community} {ip} 1.3.6.1.2.1.1.3.0
+  # Wrong password used in TC8 negative case
+  bad_password: "Admin"
 
 
-  success_indicators:
-    - "Timeticks"
+user_mgmt:
 
-  failure_indicators:
-    - "Timeout"
-    - "authenticationFailure"
-    - "No Response"
+  create_commands:
+    # Enter system view
+    - "sys"
+
+    # Create user
+    - ["local-user {username} class manage", ["#", "new local"]]
+
+    # Set password
+    - ["password simple {password}", ["#", ">", "$"]]
+
+    # Assign role
+    - ["authorization-attribute user-role {role}", ["#", ">", "$"]]
+
+    # Enable SSH service
+    - ["service-type {service_type}", ["#", ">", "$"]]
+
+    # Exit config
+    - ["quit", ["#", ">", "$"]]
+
+    # Save config
+    - ["save force", ["saved", "#", "Y/N"]]
+
+
+  delete_commands:
+    # Enter system view
+    - "sys"
+
+    # Delete user (with confirmation handling)
+    - ["undo local-user {username} class manage",
+        ["#", ">", "$", "Are you sure", "Y/N"]]
+
+    # Confirm deletion
+    - ["Y", ["#", ">", "$"]]
+
+    # Save config
+    - ["save force", ["saved", "#", "Y/N"]]

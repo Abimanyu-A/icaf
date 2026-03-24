@@ -1,5 +1,5 @@
 import time
-from core.step import Step
+from icaf.core.step import Step
 
 
 class WaitStep(Step):

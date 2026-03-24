@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # ITSAR Clause Spec — 1.1.1 Management Protocols Entity Mutual Authentication
+# DUT: WatchDog Router WD4520-X1 | OEM: Apollo Infoways Private Limited
 # ─────────────────────────────────────────────────────────────────────────────
 
 clause: "1.1.1"
@@ -8,302 +9,300 @@ itsar:
   section_no: "1.1"
   section_name: "Access and Authorization"
   requirement_no: "1.1.1"
-  requirement_name: "Management Protocols Entity Mutual Authentication"
+  requirement_name: "Management Protocols and Mutual Authentication"
   applicable_itsar:
-    - id: "ITSAR402122401"
-      ref: "NCCS/ITSAR/Customer Premises Equipment/Data CPEs/Wi-Fi CPEs-V1.0.1"
+    - id: "ITSAR201012401"
+      ref: "IP Router-ITSAR201012401"
       version: "v.1.0.1"
       release_date: "03rd January 2024"
-    - id: "ITSAR001962411"
-      ref: "NCCS/ITSAR/Standards Applicable for Group of Equipment/Cryptographic Controls/Crypto-Controls-V2.0.0"
-      version: "v 2.0.0"
-      release_date: "21st November 2024"
+    - id: "TSDSI-STD-T1.3GPP-33.117"
+      ref: "TSDSI STD T1.3GPP 33.117-14.2.0 V.1.0.0 section 4.2.3.4.4.1"
+      version: "v.1.0.0"
+      release_date: "N/A"
 
 requirement_description: >
-  The protocols used for the Network Product’s management shall support mutual authentication mechanisms. There is mutual authentication of entities for management interfaces on the network product. There is mutual authentication of entities for management interfaces on the network product. HTTPS with TLS 1.2, SNMP V3 Protocols are allowed.  
+  The protocols used for the Network Product's management shall support mutual
+  authentication mechanisms. There is mutual authentication of entities for
+  management interfaces on the network product. HTTPS with TLS 1.2, SNMP V3
+  Protocols are allowed.
+  [Reference: TSDSI STD T1.3GPP 33.117-14.2.0 V.1.0.0. section 4.2.3.4.4.1]
 
 dut_config:
   split_mode_note: >
-    The DUT supports Split mode configuration, meaning all OAM-related
-    configurations for AP will be managed on the Controller.
+    The DUT (WD4520-X1) is a standalone MPLS router. All management interfaces
+    (SSH, HTTPS, SNMPv3, gRPC/gNMI) are configured directly on the device.
   snmp_note: >
-    The controller supports SNMPv2, which is why the SNMPv2 option is available
-    in its interface. The DUT (AP-R350) does not support SNMPv3, whereas other
-    devices that do support SNMPv2 are able to connect to the controller
-    successfully. Therefore, both SNMPv2 and SNMPv3 options may be visible on the
-    controller, as per the OEM's design and compatibility with different device
-    capabilities.
+    SNMPv1 and SNMPv2c are disabled by default on the DUT, meeting ITSAR
+    security requirements. SNMPv3 with SHA authentication and AES-128 privacy
+    is supported. The DUT rejects connections using weaker algorithms (MD5,
+    3DES, DES56).
   oam_access:
     - protocol: "Console"
-      supported: "No"
+      supported: "Yes (RS-232, 9600 baud)"
     - protocol: "SSH"
-      supported: "Yes, SSHv2"
+      supported: "Yes, SSHv2 (ECDSA/RSA host key, public key auth supported)"
     - protocol: "IPSec"
-      supported: "Yes, IPSEC IKEV2/ESP"
+      supported: "Yes, IKEv2"
     - protocol: "SNMP"
-      supported: "Yes, version: V2c and V3 for fips"
+      supported: "Yes, SNMPv3 (SHA/AES-128); SNMPv1/v2c disabled by default"
     - protocol: "Web interface"
-      supported: "Yes: Goahead webserver v2.1.8 and lighttpd using HTTP1.1"
+      supported: "Yes, HTTPS (TLS 1.2/1.3)"
     - protocol: "gRPC/gNMI"
-      supported: "No"
+      supported: "Yes, v1.34.0/v0.6.0 (TLS mutual auth with PKI certificates)"
     - protocol: "TLS (https)"
-      supported: "Yes (HTTPv1.1 over TLSv1.2)"
+      supported: "Yes (TLS 1.2/1.3)"
     - protocol: "VPN"
-      supported: "No"
+      supported: "Yes (IPsec, L2TP)"
 
 preconditions:
   - "Review OEM Documentation that lists all the management protocols and describes the authentication mechanism used for each one. List is to be furnished with the test report."
   - "Documentation that lists each of the management protocols and describes the mutual authentication mechanism (password, certificate, key pairs/PSK, user-based security models e.g. SNMPv3) used for each one on each port."
-  - "Documentation including the details of the mechanism used for mutual authentication and cipher suites enabled on DUT"
+  - "Documentation including the details of the mechanism used for mutual authentication and cipher suites enabled on DUT."
   - "List of all the management protocols supported by DUT with the details."
 
 test_objective: >
+  Based on the OEM Documentation regarding DUT Supported Management Protocols,
+  checking of mutual authentication for all such protocols is required.
   To verify that DUT permits access through supported management protocols only
   after successful mutual authentication.
 
 test_plan:
   scope_note: >
-    Controller supports SNMP, HTTPS and SSH for management and testing of
-    controller-related test cases is out of scope. Below are the applicable test
-    cases for AP only.
+    The DUT (WD4520-X1) supports SNMPv3, SSH (password and public key),
+    HTTPS, and gRPC/gNMI for management. All applicable protocols are tested
+    for mutual authentication. Console access is out of scope for automated
+    testing.
   tools:
-    - "Windows 11 Pro v10.0.22631"
-    - "Wireshark v4.4.0"
-    - "Putty v0.81"
-    - "Paessler SNMP Tester 24.4.102.648"
+    - "Kali GNU/Linux Rolling 2025.1"
+    - "Wireshark 4.6.0"
+    - "Putty v0.83"
+    - "OpenSSL 3.5.4"
+    - "grpcurl dev build"
+    - "Nmap 7.95"
   evidence_format: >
-    Screenshots of respective tools (Wireshark or Terminal) used for the testing
-    will be attached once the testing for the test case is performed. Automated
-    evidence includes command output and system responses captured directly from
-    the DUT via SSH.
+    Screenshots of commands performed on Kali Linux, web browser terminal, and
+    packets captured in Wireshark are to be provided. Automated evidence
+    includes command output and system responses captured directly.
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TEST CASES
-# Each entry defines: description, steps, observation, expected_result, remarks
-# The `name` key must match the test result object's `name` field exactly.
 # ─────────────────────────────────────────────────────────────────────────────
 
 testcases:
-  # ── runner_name ──────────────────────────────────────────────────────────
-  # The runner derives TC names from Python class names, which sometimes differ
-  # from the canonical ITSAR names used here. Set runner_name to the string the
-  # runner actually emits so the report can match them correctly.
-  # If runner_name is absent, the generator falls back to positional matching
-  # (1st result → 1st YAML entry, etc.).
-  # ─────────────────────────────────────────────────────────────────────────
 
-  TC1_MUTUAL_AUTHENTICATION:
-    runner_name: "TC1_MUTUAL_AUTHENTICATION"   # exact match — no mapping needed
-    scenario: "Test to verify if the management protocol (SSH) supports mutual authentication using any authentication attribute."
+  TC1_SNMPV3_POSITIVE:
+    runner_name: "TC1_SNMPV3_POSITIVE"
+    scenario: "Test Scenario 1.1.1 — Positive: Configure and verify SNMPv3 protocol mutual authentication."
     description: >
-      The tester shall attempt to connect to DUT over SSH for the first time to
-      verify that the DUT presents its host public key for client-side verification,
-      initiating mutual authentication.
+      This test case verifies that SNMPv3 is correctly configured on the DUT
+      and that mutual authentication between the SNMP manager and SNMP agent
+      works as expected. The DUT accepts SNMPv3 communication only when correct
+      authentication credentials (username, SHA auth protocol, AES-128 privacy)
+      are provided. SNMPv1 and SNMPv2c must be disabled by default. Attempts to
+      connect with weaker algorithms (MD5/3DES) must be rejected.
     steps:
-      - "Attempt to connect to the DUT from tester machine using the command: ssh username@dut_ip_address"
-      - "Since the client is unaware of the DUT's pub key on first connection, the SSH client prompts 'Are you sure you want to continue connecting...?'"
-      - "Accept the DUT public key with 'Yes'. After this, the DUT pub key will be stored in the client known host's file."
-      - "Verify that the DUT subsequently prompts for a password or authentication credential, confirming mutual auth is active."
-      - "Confirm successful mutual authentication for SSH via packet capture (PCAP)."
+      - "Attempt to login to DUT using User1 via snmpwalk through SNMPv1 and SNMPv2c and verify DUT does not respond."
+      - "Capture SNMPv1/v2c packets in Wireshark and confirm DUT sends no response."
+      - "Log in to DUT via SSH with admin credentials and enter configuration mode."
+      - "Create SNMP group: snmp-agent group v3 SNMP_Group privacy"
+      - "Create SNMP user: snmp-agent usm-user v3 User1 SNMP_GROUP simple authentication-mode sha Test@123 privacy-mode aes128 Test@123"
+      - "Run snmpwalk with SNMPv3 (SHA/AES-128) and verify successful response."
+      - "Capture SNMPv3 traffic in Wireshark and confirm data is encrypted."
+      - "Negative: Create user2 with weaker algorithms (MD5/3DES) and verify DUT rejects connection."
     observation: >
-      Tester connects to the DUT via SSH after the public key has been added.
-      The DUT correctly presents its host key fingerprint (ECDSA/SHA256) for
-      verification, and thereafter prompts for user credentials — confirming
-      mutual authentication is enforced.
-    expected_result: "Authentication attribute must be asked by the DUT when Tester connects with DUT using SSH."
-    remarks: "After adding the public key, the tester establishes an SSH connection to the DUT."
+      SNMPv1 and SNMPv2c are disabled by default on the DUT. SNMPv3 was
+      successfully configured with SHA authentication and AES-128 encryption.
+      SNMP walk succeeded only with valid SNMPv3 credentials. Wireshark
+      confirmed encrypted traffic. Attempts to connect using weaker algorithms
+      were rejected by the DUT.
+    expected_result: "DUT shall accept SNMP requests only over SNMPv3 when correct username, authentication protocol, and privacy credentials are provided. Weaker algorithms must be rejected."
+    remarks: "DUT enforces SNMPv3 security policies, supports mutual authentication, and blocks weak cryptographic algorithms."
 
-  TC2_SSH_VALID_CREDENTIALS:
-    runner_name: "TC2_SSH_VALID_CREDENTIALS"
-    scenario: "Test to connect with the DUT over SSH verifying mutual authentication by providing correct authentication attribute."
+  TC2_SNMPV3_INVALID_CREDENTIALS:
+    runner_name: "TC2_SNMPV3_INVALID_CREDENTIALS"
+    scenario: "Test Scenario 1.1.1.2 — Negative: Verify SNMPv3 login with incorrect credentials and verify response by DUT."
     description: >
-      The tester shall attempt to connect to the DUT over SSH using correct username
-      and password credentials to verify that valid mutual authentication results in
-      a successful login.
+      This test case verifies that the DUT does not allow SNMPv3 access when
+      incorrect login credentials are used. The purpose is to confirm that
+      SNMPv3 security mechanisms properly block unauthorized access attempts
+      and return appropriate authentication failure responses.
     steps:
-      - "After accepting the host public key, reconnect to DUT using: ssh admin@<dut_ip>"
-      - "When the DUT asks for an authentication attribute (password), enter the correct credentials for the admin account."
-      - "Verify that the client successfully logs into the DUT CLI (rkscli prompt appears)."
-      - "Confirm session establishment by running a test command on the DUT."
+      - "Attempt snmpwalk with correct user but incorrect authentication password."
+      - "Observe that SNMPwalk returns 'Authentication failure (incorrect password, community or key)'."
+      - "Capture packets in Wireshark and confirm the authentication failure packet is encrypted."
     observation: >
-      The tester successfully connects to the DUT over SSH using valid credentials.
-      The SSH session is established, and the rkscli prompt confirms authorised
-      access. This validates the positive path of mutual authentication over SSH.
-    expected_result: "The Tester should be able to connect with DUT via SSH when correct credentials are used."
-    remarks: "Using valid credentials, the tester establishes a successful SSH connection to the DUT."
+      When incorrect SNMPv3 credentials were used, the DUT returned
+      authentication failure errors. SNMP walk returned 'Authentication
+      failure (incorrect password, community or key)'. Wireshark confirmed
+      all SNMP packets remained encrypted and no plaintext information was
+      exposed.
+    expected_result: "The DUT shall reject all SNMPv3 requests made with incorrect authentication or privacy credentials."
+    remarks: "Unauthorized SNMP access attempts were correctly detected and denied by the DUT."
 
-  TC3_MUTUAL_AUTHENTICATION_SSH:
-    runner_name: "TC3_SSH_INVALID_CREDENTIALS"   # runner uses short class-derived name
-    scenario: "Test to connect with the DUT over SSH verifying mutual authentication by providing incorrect authentication attribute."
+  TC3_SSH_MUTUAL_AUTH:
+    runner_name: "TC3_SSH_MUTUAL_AUTH"
+    scenario: "Test Scenario 1.1.1.3 — Configure and verify successful and unsuccessful mutual authentication over SSH."
     description: >
-      The tester shall attempt to connect to the DUT over SSH using incorrect
-      credentials to verify that invalid authentication is correctly rejected by
-      the DUT.
+      This test case verifies that the DUT supports SSH v2 mutual authentication
+      for management access. In the positive case, valid admin credentials
+      establish a session with approved cryptographic algorithms confirmed via
+      Wireshark. In the negative case, incorrect credentials are rejected
+      without leaking any confidential information; all traffic remains
+      encrypted.
     steps:
-      - "Attempt to SSH into the DUT: ssh admin@<dut_ip>"
-      - "When DUT asks for the authentication attribute (password), deliberately enter an incorrect password."
-      - "Observe whether the DUT denies access and closes the connection or allows a retry."
-      - "Verify that login fails with a 'Login incorrect' or equivalent rejection message."
+      - "Verify SSH is enabled on the DUT: ssh admin@<dut_ip>"
+      - "Verify SSH server status and version via: display ssh server status"
+      - "Run Nmap scan to enumerate DUT SSH cipher suites: nmap -p 22 --script ssh2-enum-algos <dut_ip>"
+      - "Positive: Login with correct admin credentials and confirm session establishment."
+      - "Capture SSH handshake in Wireshark; verify key exchange (ECDH/DH-Group14-SHA256) and encryption (AES128-CTR) algorithms."
+      - "Negative: Attempt SSH login with incorrect password and confirm rejection."
+      - "Capture negative case packets in Wireshark; verify traffic remains encrypted and no sensitive data is leaked."
     observation: >
-      The tester is unable to access the DUT when incorrect credentials are used.
-      The DUT returns a 'Login incorrect' response and terminates the session,
-      confirming that unauthenticated access is blocked.
-    expected_result: "The Tester should not be able to connect with DUT via SSH when incorrect credentials are used."
-    remarks: "The tester cannot access the DUT via SSH when incorrect credentials are used."
+      Positive Case: The DUT supports mutual authentication for SSH v2 when
+      logging in with correct admin credentials. Wireshark confirmed key
+      exchange and data encryption using approved algorithms (aes128-ctr,
+      hmac-sha2-256, diffie-hellman-group14-sha256).
+      Negative Case: Incorrect credentials were rejected with 'Permission
+      denied'. All traffic remained encrypted and no confidential data was
+      disclosed.
+    expected_result: "When correct SSH credentials are used, DUT shall establish SSHv2 session with encrypted communication. When incorrect credentials are used, DUT shall deny access without revealing sensitive information."
+    remarks: "The DUT supports secure SSH mutual authentication and prevents information leakage during failed authentication attempts."
 
-  TC4_MUTUAL_AUTHENTICATION_FOR_HTTPS:
-    runner_name: "TC4_HTTPS_AUTH_PROMPT"
-    scenario: "Test to verify if the management protocol (HTTPS) supports mutual authentication using any authentication attribute."
+  TC4_SSH_CORRECT_PUBLIC_KEY:
+    runner_name: "TC4_SSH_CORRECT_PUBLIC_KEY"
+    scenario: "Test Scenario 1.1.1.4 — Configure and verify SSH login using the correct public key."
     description: >
-      The tester shall attempt to access the DUT via HTTPS to verify that the DUT
-      presents a login page requiring authentication credentials before allowing any
-      management access.
+      This test case verifies that the DUT correctly supports SSH login using
+      public key authentication. When a valid ECDSA key pair is configured on
+      both the client and the DUT, the SSH connection shall be established
+      without requiring a password. DUT log entries confirm the accepted public
+      key.
     steps:
-      - "Open a web browser and navigate to https://<dut_ip>/login.asp"
-      - "Verify that the HTTPS connection is established (TLS handshake, certificate presented by DUT)."
-      - "Observe that the DUT presents a 'Ruckus Wireless Admin' login page with Username and Password fields."
-      - "Confirm that no management data is accessible without credentials."
+      - "Generate ECDSA-256 key pair on tester machine: ssh-keygen -t ecdsa -b 256 -f ~/.ssh/id_ecdsaa"
+      - "Verify public key was generated: cat ~/.ssh/id_ecdsaa.pub"
+      - "Export public key to DUT via SFTP: sftp admin@<dut_ip> → put ~/.ssh/id_ecdsaa.pub /id_ecdsaa.pub"
+      - "Log in to DUT via SSH (admin) and import public key: public-key peer PUBBKEY import sshkey flash:/id_ecdsaa.pub"
+      - "Create local user Test5 with SSH service type and level-10 role."
+      - "Assign PUBBKEY to Test5: ssh user Test5 service-type all authentication-type publickey assign publickey PUBBKEY"
+      - "Login using public key: ssh -o IdentitiesOnly=yes -i ~/.ssh/id_ecdsaa Test5@<dut_ip>"
+      - "Verify successful login without password prompt; confirm via display logbuffer."
+      - "Capture SSH session in Wireshark and confirm encrypted key exchange."
     observation: >
-      When the tester accesses the DUT via HTTPS, the login page is displayed
-      prompting for credentials. The TLS session is correctly initiated (TLSv1.2)
-      and the DUT enforces authentication before any management interface is exposed.
-    expected_result: "Authentication attribute must be asked by the DUT when Tester tries to connect with DUT using HTTPS."
-    remarks: "Upon accessing the DUT over HTTPS, the tester is presented with a login page requesting credentials."
+      The DUT supports mutual authentication for SSH v2 using the correct
+      public key. The client was able to log in to the DUT without a password.
+      Log entries confirmed 'Accepted publickey for Test5'. Wireshark confirmed
+      encrypted SSH session establishment.
+    expected_result: "The DUT shall allow SSH access only when a correctly configured public key is presented by the client."
+    remarks: "Public key-based SSH authentication is correctly supported and enforced by the DUT."
 
-  TC5_MUTUAL_AUTHENTICATION_FOR_HTTPS:
-    runner_name: "TC5_HTTPS_VALID_LOGIN"
-    scenario: "Test to connect with the DUT over HTTPS verifying mutual authentication by providing correct authentication attribute."
+  TC5_SSH_INCORRECT_PUBLIC_KEY:
+    runner_name: "TC5_SSH_INCORRECT_PUBLIC_KEY"
+    scenario: "Test Scenario 1.1.1.5 — Configure and verify SSH login using the incorrect public key."
     description: >
-      The tester shall attempt to connect to the DUT over HTTPS using correct
-      credentials to verify that valid authentication grants access to the web
-      management interface.
+      This test case verifies that the DUT does not allow SSH access when an
+      unregistered (wrong) public key is used. The connection must be closed
+      immediately with 'Permission denied (publickey)'. DUT logs confirm
+      authentication failure. Traffic remains encrypted throughout.
     steps:
-      - "Navigate to https://<dut_ip>/login.asp in the browser."
-      - "Enter valid admin credentials (username: admin, password: <correct_password>)."
-      - "Click Login and verify that the DUT grants access to the Ruckus R350 management dashboard."
-      - "Confirm TLS session establishment via PCAP (TLSv1.2 application data exchange visible)."
+      - "Generate a second, unregistered ECDSA key pair: ssh-keygen -t ecdsa -b 256 -f ~/.ssh/wrong_keyy"
+      - "Attempt SSH login using the wrong key: ssh -o IdentitiesOnly=yes -i ~/.ssh/wrong_keyy Test5@<dut_ip>"
+      - "Observe that DUT closes the connection with 'Permission denied (publickey)'."
+      - "Verify failure in DUT log buffer: display logbuffer"
+      - "Capture packets in Wireshark and confirm all traffic is encrypted and no access is granted."
     observation: >
-      After the login page appears on the DUT, entering valid credentials allows
-      the tester to establish a secure HTTPS connection. The management dashboard
-      (index.asp) is displayed showing device status, confirming full authenticated
-      access over TLSv1.2.
-    expected_result: "The Tester should be connected with DUT via HTTPS when correct credentials are used."
-    remarks: "A secure HTTPS connection is established after valid credentials are entered on the DUT login page."
+      The DUT does not support mutual authentication for SSH v2 when an
+      incorrect public key is used. The connection was closed immediately with
+      'Permission denied (publickey)'. DUT logs showed 'SSH user Test5 failed
+      to pass public key authentication for wrong public key'. Traffic remained
+      encrypted in Wireshark.
+    expected_result: "The DUT shall reject SSH login attempts made with an incorrect or untrusted public key."
+    remarks: "The DUT effectively blocks unauthorized SSH access attempts using invalid keys."
 
-  TC6_MUTUAL_AUTHENTICATION_FOR_HTTPS:
-    runner_name: "TC6_HTTPS_INVALID_LOGIN"
-    scenario: "Test to connect with the DUT over HTTPS verifying mutual authentication by providing incorrect authentication attribute."
+  TC6_HTTPS_VALID_LOGIN:
+    runner_name: "TC6_HTTPS_VALID_LOGIN"
+    scenario: "Test Scenario 1.1.1.6 — Configure and verify successful mutual authentication over HTTPS."
     description: >
-      The tester shall attempt to connect to the DUT over HTTPS using incorrect
-      credentials to verify that the DUT rejects unauthorised HTTPS login attempts.
+      This test case verifies that the DUT correctly supports and enforces
+      successful mutual authentication (client certificate authentication)
+      during an HTTPS connection. Valid admin credentials shall grant access
+      to the web management dashboard over TLS 1.2/1.3.
     steps:
-      - "Navigate to https://<dut_ip>/login.asp in the browser."
-      - "Enter incorrect credentials (e.g., wrong password for admin user)."
-      - "Observe that the login attempt fails and the DUT does not provide management access."
-      - "Verify rejection via PCAP — TLS FIN/RST should be observed after failed auth attempt."
+      - "Open web browser and navigate to https://<dut_ip>/"
+      - "Enter valid admin credentials (username: admin, correct password) and click Submit."
+      - "Verify that the DUT grants access to the management dashboard (System Information page displayed)."
+      - "Capture HTTPS traffic in Wireshark; verify TLS Client Hello and Server Hello."
+      - "Confirm TLS version (1.2 or 1.3) and cipher suite from Wireshark capture."
     observation: >
-      Access to DUT is denied when incorrect credentials are provided via HTTPS.
-      The browser remains on the login page and no management data is disclosed.
-      PCAP confirms the TCP session is terminated (FIN/ACK exchange) after the
-      authentication failure.
-    expected_result: "The Tester should not be able to connect with DUT via HTTPS when incorrect credentials are used."
-    remarks: "The tester cannot access the DUT via HTTPS when incorrect credentials are used."
+      The DUT supports mutual authentication for the HTTPS protocol when
+      logging in with correct admin credentials. The management dashboard was
+      displayed confirming access. Wireshark analysis confirmed both server and
+      client traffic were encrypted. The DUT supports TLS 1.2/1.3.
+    expected_result: "The DUT shall successfully establish a secure HTTPS session only when valid credentials are provided."
+    remarks: "The DUT provides secure HTTPS access with encrypted transport and proper authentication enforcement."
 
-  TC7_MUTUAL_AUTHENTICATION_FOR_SNMP:
-    runner_name: "TC7_SSHV1_DISABLED"
-    scenario: "Test to connect with the DUT using SNMPv3 with correct authentication and encryption credentials."
+  TC7_HTTPS_INVALID_LOGIN:
+    runner_name: "TC7_HTTPS_INVALID_LOGIN"
+    scenario: "Test Scenario 1.1.1.7 — Configure and verify unsuccessful mutual authentication over HTTPS."
     description: >
-      The tester shall attempt to connect to the DUT over SNMPv3 using correct
-      authentication (SHA) and encryption (AES) credentials to verify that mutual
-      authentication and encrypted communication is supported.
+      This test case verifies that the DUT does not allow HTTPS management
+      access when incorrect admin credentials are entered. The browser must
+      remain on the login page with an error message. No management data shall
+      be disclosed. TLS encryption shall be maintained.
     steps:
-      - "Configure SNMPv3 agent on the DUT controller with user1, SHA authentication, AES privacy, and set appropriate passphrases."
-      - "In Paessler SNMP Tester, configure: SNMP Version=v3, User=user1, Auth=SHA, Encryption=AES, with correct credentials."
-      - "Select 'Read Device Uptime' as the request type and initiate the SNMP query."
-      - "Verify in the tool output that sysUpTime data is successfully returned from the DUT."
-      - "Verify via PCAP that SNMPv3 packets are transmitted and that authentication succeeds (msgAuthenticationParameters verified)."
+      - "Open web browser and navigate to https://<dut_ip>/"
+      - "Enter incorrect credentials (wrong password for admin) and click Submit."
+      - "Observe that DUT displays 'Failed to log in' error and does not grant management access."
+      - "Capture HTTPS traffic in Wireshark; confirm TLS encryption and session termination after failed auth."
     observation: >
-      DUT supports SNMPv3 as a management protocol with mutual authentication.
-      The DUT returns the sysUpTime value successfully when queried with correct
-      SHA authentication and AES encryption credentials. PCAP confirms proper
-      SNMPv3 message structure with valid engine ID and decrypted payload.
-    expected_result: "The DUT should successfully connect to the Client (Tester PC) with correct SNMPv3 credentials proving the support of mutual authentication."
-    remarks: "The DUT supports usage of SNMPv3 supporting usage of authentication and encryption parameters proving the support of mutual authentication."
+      Access to the DUT was denied when incorrect credentials were provided
+      via HTTPS. The browser remained on the login page with error 'Failed to
+      log in'. PCAP confirmed TLS-encrypted traffic and no sensitive data
+      leakage.
+    expected_result: "The DUT shall deny HTTPS access when incorrect credentials are entered."
+    remarks: "Unauthorized HTTPS access attempts are properly blocked without compromising data confidentiality."
 
-  TC8_MUTUAL_AUTHENTICATION_FOR_SNMP:
-    runner_name: "TC8_TLS10_DISABLED"
-    # NOTE: The runner emits TC8_TLS10_DISABLED twice (TLS 1.0 and TLS 1.1
-    # checks share the same class name due to a runner naming collision).
-    # Both evidence blocks are merged into this canonical entry.
-    # The second occurrence maps to TC9 via position fallback below.
-    scenario: "Test to connect with DUT using SNMPv3 with incorrect authentication password."
+  TC8_GRPC_GNMI_MUTUAL_AUTH:
+    runner_name: "TC8_GRPC_GNMI_MUTUAL_AUTH"
+    scenario: "Test Scenario 1.1.1.8 — Configure and verify mutual authentication over gRPC/gNMI."
     description: >
-      The tester shall attempt to connect to the DUT over SNMPv3 using an incorrect
-      authentication password to verify that the DUT rejects SNMP queries from
-      clients with wrong credentials.
+      This test case verifies that the DUT supports and enforces mutual
+      authentication over gRPC/gNMI communication. The DUT shall establish a
+      TLS-protected session only when a trusted CA certificate, valid client
+      certificate, and correct user credentials are provided. A Token-ID shall
+      be returned on successful authentication. Invalid credentials must be
+      rejected without issuing a token.
     steps:
-      - "In Paessler SNMP Tester, configure SNMPv3 with user1 but supply an incorrect authentication password."
-      - "Attempt to query the DUT uptime."
-      - "Observe the tool output — an authentication failure error (SNMP error #16) should be returned."
-      - "Verify via PCAP that the DUT returns SNMP Authentication Error in the response packets."
+      - "Generate CA key/cert, gRPC client key/cert, and PKCS#12 bundle on tester (Kali Linux using OpenSSL)."
+      - "Transfer grpc.p12 and ca.pem to DUT via SFTP."
+      - "Import CA certificate into DUT PKI domain: pki import domain grpc_pki pem ca filename ca.pem"
+      - "Import client PKCS#12 into DUT PKI domain: pki import domain grpc_pki p12 local filename grpc.p12"
+      - "Verify certificate installation: display pki certificate domain grpc_pki local / ca"
+      - "Enable gRPC on DUT: grpc pki domain grpc_pki → grpc enable → grpc port 50051"
+      - "Create local gRPC user Test1 with password Admin@123 and network-admin role."
+      - "Positive: Run grpcurl with valid credentials and verify token_id is returned."
+      - "Capture gRPC traffic in Wireshark; verify TLS handshake and encrypted application data."
+      - "Negative: Run grpcurl with incorrect password and verify no token_id is returned (error: Failed to login)."
+      - "Capture negative case in Wireshark and confirm TLS encryption maintained."
     observation: >
-      With an incorrect authentication password, the client is unable to poll the
-      DUT with the required OID. The DUT returns 'Authentication failure (incorrect
-      password, community or key)' confirming that SNMPv3 mutual authentication
-      is enforced.
-    expected_result: "The attempt to connect with DUT using SNMPv3 with an incorrect authentication password must fail."
-    remarks: "The DUT does not respond to queries made by SNMP clients with incorrect authentication passwords."
-
-  TC9_MUTUAL_AUTHENTICATION_FOR_SNMP:
-    # No runner_name — second TC8_TLS10_DISABLED hit is merged into TC8.
-    # TC9 in this real run was NOT RUN (it was covered under TC8's duplicate).
-    scenario: "Test to connect with DUT using SNMPv3 with incorrect encryption password."
-    description: >
-      The tester shall attempt to connect to the DUT over SNMPv3 using a correct
-      authentication password but an incorrect encryption (privacy) key to verify
-      that data confidentiality is enforced.
-    steps:
-      - "In Paessler SNMP Tester, configure SNMPv3 with user1, correct authentication password, but supply an incorrect encryption key."
-      - "Attempt to query the DUT uptime."
-      - "Observe that the tool cannot decrypt the received response."
-      - "Verify via PCAP that the DUT sends an encrypted response but decryption fails at the client due to key mismatch."
-    observation: >
-      When the client attempts to poll the DUT with a correct authentication
-      password but incorrect encryption key, the DUT responds but the packet
-      cannot be decrypted correctly. PCAP shows 'Decrypted data not formatted as
-      expected, wrong key?' — confirming AES encryption is enforced and data
-      confidentiality is maintained.
-    expected_result: "The attempt to connect with DUT using SNMPv3 with an incorrect encryption password must fail."
-    remarks: "When the encryption password is incorrect, the client can poll the DUT and the DUT responds but the packet cannot be decrypted by the tool and hence, the data transmitted cannot be read."
-
-  TC10_MUTUAL_AUTHENTICATION_FOR_SNMP:
-    # No runner_name — not run in this session.
-    scenario: "Test to connect with DUT using SNMPv2."
-    description: >
-      The tester shall attempt to connect to the DUT over SNMPv2 (community-based,
-      no mutual authentication) to verify that the DUT does not respond to insecure
-      SNMP queries, enforcing the use of SNMPv3.
-    steps:
-      - "Configure an SNMPv2 agent entry on the DUT controller with community string 'Test' and Read/Write privilege."
-      - "In Paessler SNMP Tester, configure: SNMP Version=v2c, Community=Test."
-      - "Attempt to query the DUT uptime using SNMPv2."
-      - "Observe that the tool returns 'No response' or SNMP error #-2003."
-      - "Verify via PCAP — the DUT sends no response (ICMP Destination Unreachable may be observed)."
-    observation: >
-      The DUT does not respond to any queries made using SNMPv2. When an attempt
-      is made to fetch system data using SNMPv2, the DUT does not provide any
-      response to the SNMP client query. This confirms that only SNMPv3 (with
-      mutual authentication) is accepted by the DUT.
-    expected_result: "The attempt to connect with DUT using SNMPv2 must fail."
-    remarks: "When an attempt is made to fetch system data from the DUT using SNMP v2, the DUT does not provide any kind of response to the query made by the SNMP client."
+      Positive: The DUT established a TLS-protected gRPC/gNMI session. A
+      token_id was returned confirming successful mutual authentication.
+      Wireshark confirmed TLS 1.3 encrypted gRPC traffic.
+      Negative: With incorrect credentials, the DUT rejected the request
+      (ERROR: Failed to login) and no token_id was issued.
+    expected_result: "The DUT shall establish a TLS-protected gRPC/gNMI session only when a trusted CA certificate, valid client certificate, and correct user credentials are provided."
+    remarks: "The DUT enforces certificate-based and user-based authentication and blocks unauthorized gRPC/gNMI access."
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CONCLUSION BULLETS  (appended after the result table)
+# CONCLUSION BULLETS
 # ─────────────────────────────────────────────────────────────────────────────
 
 conclusion_bullets:
-  - "The DUT is configured using HTTPS, SNMPv3 and SSH as the management protocols."
-  - "The DUT is accessed by authorized users through mutual authentication and does not permit access without valid credentials."
-  - "Device (DUT) monitored or managed using SNMP is referred to as a managed device, and SNMP agents are software agents that reside on the managed devices (DUT)."
-  - "SNMP allows the user to monitor and configure network devices (DUT) from a central location."
-  - "The DUT successfully rejects all connection attempts made using insecure protocols (SNMPv2) or invalid credentials, demonstrating compliance with ITSAR Section 1.1.1."
+  - "The DUT was successfully configured for SNMPv3 with authentication and privacy enabled. SNMPv1 and SNMPv2c were found to be disabled by default, which aligns with ITSAR security requirements. SNMPv3 communication was established only when correct credentials and approved cryptographic algorithms were used. Packet analysis confirmed SNMP traffic was encrypted and mutual authentication was enforced."
+  - "The DUT correctly rejected SNMPv3 access attempts made with invalid credentials. SNMP walk operations returned authentication failure errors, and Wireshark captures confirmed traffic remained encrypted. No management access was granted and no sensitive information was disclosed."
+  - "The DUT successfully supported SSH v2 mutual authentication when valid credentials were used. Secure key exchange and encrypted communication were verified through Wireshark, confirming the use of approved cryptographic algorithms. When incorrect credentials were provided, the DUT denied access and maintained encrypted communication without exposing any sensitive information."
+  - "The DUT successfully authenticated the SSH client using public key-based authentication. The user was able to log in without a password only when the correct public key was configured. Logs and packet captures confirmed successful authentication and encrypted communication."
+  - "The DUT correctly rejected SSH login attempts made with an incorrect public key. The connection was closed without granting access, and logs confirmed the authentication failure. Wireshark analysis showed that traffic remained encrypted throughout the attempt."
+  - "The DUT successfully established secure HTTPS sessions using valid credentials. Wireshark captures confirmed TLS was used and all communication was encrypted. The DUT granted access only after proper authentication, demonstrating compliant HTTPS management access."
+  - "The DUT rejected HTTPS login attempts made with incorrect credentials and returned appropriate error messages. Packet captures confirmed TLS encryption was maintained and no sensitive information was leaked."
+  - "The DUT complies with the security requirement for mutual authentication over gRPC/gNMI. Successful authentication was achieved only with valid certificates and credentials, while invalid attempts were effectively blocked."
+  - "The DUT successfully rejects all connection attempts made using insecure protocols or invalid credentials, demonstrating compliance with ITSAR Section 1.1.1."

@@ -1,17 +1,60 @@
-from icaf.core.step import Step
+"""
+steps/click_step.py
+──────────────────────────────────────────────────────────────────────────────
+Clicks a web element, located by CSS selector with an explicit WebDriverWait.
+
+Improvements over original
+───────────────────────────
+• Uses CSS selector (more flexible than By.NAME) with a configurable timeout.
+• Waits for the element to be clickable (not just present) before clicking.
+• Scrolls the element into view before clicking to handle off-screen elements.
+• Logs the selector and any failure for easy debugging.
+"""
+
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
+from icaf.core.step import Step
+from icaf.utils.logger import logger
 
 
 class ClickStep(Step):
+    """
+    Click a web element.
 
-    def __init__(self, selector):
+    Parameters
+    ----------
+    selector : str
+        CSS selector for the target element.
+    timeout : int
+        Seconds to wait for the element to be clickable.  Default 10.
+    """
 
+    def __init__(self, selector: str, timeout: int = 10):
         super().__init__("Click element")
-
         self.selector = selector
+        self.timeout  = timeout
 
-    def execute(self, context):
+    def execute(self, context) -> None:
+        driver = context.browser.driver
+        logger.info("ClickStep: waiting for element '%s'", self.selector)
 
-        element = context.browser.driver.find_element(By.NAME, self.selector)
+        try:
+            element = WebDriverWait(driver, self.timeout).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, self.selector))
+            )
+            # Scroll into view in case element is outside the viewport
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});", element
+            )
+            element.click()
+            logger.info("ClickStep: clicked '%s'", self.selector)
 
-        element.click()
+        except TimeoutException:
+            logger.error(
+                "ClickStep: element '%s' not clickable within %ds",
+                self.selector, self.timeout,
+            )
+            raise

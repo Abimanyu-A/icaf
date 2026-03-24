@@ -1,5 +1,5 @@
-from icaf.reporting.clause_reports.clause_1_1_1_report import Clause111Report
 from icaf.reporting.clause_reports.clause_1_6_1_report import Clause161Report
+from icaf.reporting.clause_reports.clause_1_1_1_report import Clause111Report
 
 
 class ReportFactory:
