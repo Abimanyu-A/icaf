@@ -28,10 +28,11 @@ class TC1SNMPv3Positive(TestCase):
 
     # ── helpers ────────────────────────────────────────────────────────────
 
-    def _snmpwalk(self, version, opts, target):
+    def _snmpget(self, version, community, target):
+        oid = "1.3.6.1.2.1.1.3.0"   # sysUpTime (lightweight, always present)
+
         if version in ("1", "2c"):
-            return f"snmpwalk -v{version} -c {opts} {target}"
-        return f"snmpwalk {opts} {target}"
+            return f"snmpget -v{version} -c {community} {target} {oid}"
 
     # ── step 1: verify SNMPv1/v2c disabled ────────────────────────────────
 
@@ -44,8 +45,7 @@ class TC1SNMPv3Positive(TestCase):
         for ver in ("1", "2c"):
             StepRunner([
                 PcapStartStep(interface="eth0", filename=f"tc1_snmp_v{ver}.pcapng"),
-                CommandStep("tester", self._snmpwalk(ver, community, target),
-                            settle_time=6),
+                CommandStep("tester", self._snmpget(ver, community, target), settle_time=3),
             ]).run(context)
 
             pattern, _ = ExpectOneOfStep(
@@ -56,6 +56,7 @@ class TC1SNMPv3Positive(TestCase):
 
             StepRunner([PcapStopStep()]).run(context)
             ScreenshotStep("tester").execute(context)
+            StepRunner([ClearTerminalStep("tester")]).run(context)
 
             if any(t in pattern for t in timeout_patterns):
                 logger.info("TC1: SNMPv%s correctly disabled — no response", ver)
@@ -72,11 +73,6 @@ class TC1SNMPv3Positive(TestCase):
     # ── step 2: configure SNMPv3 on DUT ───────────────────────────────────
 
     def _configure_snmpv3(self, context):
-        target = context.profile.get("snmp.target") or context.ssh_ip
-        auth_pass = context.profile.get("snmp.auth_pass", context.snmp_auth_pass or "Test@123")
-        priv_pass = context.profile.get("snmp.priv_pass", context.snmp_priv_pass or "Test@123")
-        snmp_user = context.profile.get("snmp.user",      context.snmp_user or "User1")
-
         
         # New profile-driven SSH command
         ssh_binary = context.profile.get("ssh.binary", "ssh")
@@ -93,18 +89,10 @@ class TC1SNMPv3Positive(TestCase):
         StepRunner([InputStep("tester", context.ssh_password)]).run(context)
         ExpectOneOfStep("tester", ["#", ">", "$"], timeout=10).execute(context)
 
-        dut_cmds = [
-            "sys",
-            "snmp-agent group v3 SNMP_Group privacy",
-            (f"snmp-agent usm-user v3 {snmp_user} SNMP_Group simple "
-             f"authentication-mode sha {auth_pass} privacy-mode aes128 {priv_pass}"),
-            # Weak user for negative sub-check
-            (f"snmp-agent usm-user v3 user2 SNMP_Group simple "
-             f"authentication-mode md5 {auth_pass} privacy-mode 3des {priv_pass}"),
-            "save force",
-        ]
+        dut_cmds = context.profile.get_list("snmp.config_commands")
+
         for cmd in dut_cmds:
-            StepRunner([CommandStep("tester", cmd, settle_time=2)]).run(context)
+            StepRunner([CommandStep("tester", cmd, settle_time=5)]).run(context)
             ExpectOneOfStep("tester", ["#", ">", "$", "successfully", "saved", "Y/N"],
                             timeout=10).execute(context)
 
@@ -123,7 +111,7 @@ class TC1SNMPv3Positive(TestCase):
 
         opts = (f"-v3 -u {snmp_user} -l authPriv "
                 f"-a SHA -A \"{auth_pass}\" -x AES -X \"{priv_pass}\"")
-        cmd = self._snmpwalk("3", opts, target)
+        cmd = f"snmpget {opts} {target} 1.3.6.1.2.1.1.3.0"
 
         StepRunner([
             PcapStartStep(interface="eth0", filename="tc1_snmpv3_valid.pcapng"),
@@ -160,7 +148,7 @@ class TC1SNMPv3Positive(TestCase):
 
         opts = (f"-v3 -u user2 -l authPriv "
                 f"-a MD5 -A \"{auth_pass}\" -x DES -X \"{priv_pass}\"")
-        cmd = self._snmpwalk("3", opts, f"1.3.6.1.2.1.1 {target}")
+        cmd = f"snmpget {opts} {target} 1.3.6.1.2.1.1.3.0"
 
         StepRunner([
             PcapStartStep(interface="eth0", filename="tc1_snmpv3_weak.pcapng"),

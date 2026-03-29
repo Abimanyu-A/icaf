@@ -30,12 +30,6 @@ ssh:
 
   # Options appended to every ssh command built by TC3 / TC4 / TC5
   connect_options:
-    - -o
-    - HostKeyAlgorithms=+ssh-rsa
-    - -o
-    - PubkeyAcceptedAlgorithms=+ssh-rsa
-    - -o
-    - StrictHostKeyChecking=no
 
   # Legacy SSHv1 test command (TC3 nmap scan reference)
   ssh_v1_command: "ssh -1 {user}@{ip}"
@@ -93,6 +87,13 @@ ssh:
 
 # ── SNMP ──────────────────────────────────────────────────────────────────────
 snmp:
+  config_commands:
+    - "sudo su -"
+    - "reaper@123"
+    - "apt install -y snmpd"
+    - "echo 'createUser User1 SHA Test@123 AES Test@123' >> /etc/snmp/snmpd.conf"
+    - "echo 'rouser User1 authPriv' >> /etc/snmp/snmpd.conf"
+    - "systemctl restart snmpd"
   # DUT management IP for SNMP — defaults to context.ssh_ip if not set
   target: ""    # leave blank to fall back to context.ssh_ip at runtime
 
@@ -269,3 +270,9 @@ user_mgmt:
 
     # Save config
     - ["save force", ["saved", "#", "Y/N"]]
+
+
+features:
+  snmp: true
+  snmp_v3: true
+  weak_crypto_allowed: true

@@ -66,7 +66,7 @@ class TC2SNMPv3InvalidCredentials(TestCase):
             result = False
 
         # Inter-TC cooldown
-        StepRunner([ClearTerminalStep("tester")]).run(context)
+        StepRunner([SessionResetStep("tester")]).run(context)
 
         self.pass_test() if result else self.fail_test()
         return self

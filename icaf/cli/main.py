@@ -17,9 +17,9 @@ import yaml
 
 console = Console()
 
-DEFAULT_SSH_USER = "msfadmin"
-DEFAULT_SSH_IP = "10.143.115.214"
-DEFAULT_SSH_PASSWORD = "msfadmin"
+DEFAULT_SSH_USER = "dut"
+DEFAULT_SSH_IP = "10.80.127.211"
+DEFAULT_SSH_PASSWORD = "reaper@123"
 
 DEFAULT_SNMP_USER = "snmpuser"
 DEFAULT_SNMP_AUTH_PASS = "authpass"
