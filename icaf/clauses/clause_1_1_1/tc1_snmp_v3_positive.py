@@ -56,14 +56,19 @@ class TC1SNMPv3Positive(TestCase):
             ).execute(context)
 
             StepRunner([PcapStopStep()]).run(context)
-            ScreenshotStep("tester").execute(context)
+            ScreenshotStep(
+                "tester",
+                caption=f"TC1 Step 1 — SNMPv{ver} query to DUT shows no response, confirming SNMPv{ver} is disabled",
+            ).execute(context)
             StepRunner([ClearTerminalStep("tester")]).run(context)
 
             if any(t in pattern for t in timeout_patterns):
                 logger.info("TC1: SNMPv%s correctly disabled — no response", ver)
                 StepRunner([
                     AnalyzePcapStep(f"udp.port == 161 && ip.addr == {target}"),
-                    WiresharkPacketScreenshotStep(),
+                    WiresharkPacketScreenshotStep(
+                        caption=f"TC1 Step 1 — Wireshark capture confirms no SNMPv{ver} UDP/161 response from DUT",
+                    ),
                 ]).run(context)
             else:
                 logger.warning("TC1: SNMPv%s returned a response — may not be disabled", ver)
@@ -74,7 +79,7 @@ class TC1SNMPv3Positive(TestCase):
     # ── step 2: configure SNMPv3 on DUT ───────────────────────────────────
 
     def _configure_snmpv3(self, context):
-        
+
         # New profile-driven SSH command
         ssh_base = context.profile.get("ssh.base", "ssh")
         ssh_options = context.profile.get_list("ssh.connect_options")
@@ -91,7 +96,6 @@ class TC1SNMPv3Positive(TestCase):
         ExpectOneOfStep("tester", ["#", ">", "$"], timeout=10).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
-
         dut_cmds = context.profile.get_list("snmp.config_commands")
 
         for cmd in dut_cmds:
@@ -99,7 +103,10 @@ class TC1SNMPv3Positive(TestCase):
             ExpectOneOfStep("tester", ["#", ">", "$", "successfully", "saved", "Y/N"],
                             timeout=10).execute(context)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC1 Step 2 — SNMPv3 user and authentication configuration applied on DUT",
+        ).execute(context)
         # Disconnect from DUT config session before running SNMP walk
         StepRunner([
             SessionResetStep("tester", post_reset_delay=2),
@@ -131,7 +138,10 @@ class TC1SNMPv3Positive(TestCase):
         ).execute(context)
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC1 Step 3 — SNMPv3 walk with correct SHA/AES credentials returns OID data, confirming successful mutual authentication",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
         if any(f in pattern for f in ["Timeout", "Authentication failure", "Error"]):
@@ -142,7 +152,9 @@ class TC1SNMPv3Positive(TestCase):
         logger.info("TC1: valid SNMPv3 walk succeeded")
         StepRunner([
             AnalyzePcapStep("snmp || udp.port == 161 || udp.port == 162"),
-            WiresharkPacketScreenshotStep(),
+            WiresharkPacketScreenshotStep(
+                caption="TC1 Step 3 — Wireshark shows encrypted SNMPv3 exchange using AuthPriv, confirming SHA auth and AES privacy",
+            ),
         ]).run(context)
         return True
 
@@ -169,7 +181,10 @@ class TC1SNMPv3Positive(TestCase):
         ).execute(context)
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC1 Step 4 — SNMPv3 walk with weak MD5/DES algorithms rejected by DUT, no OID data returned",
+        ).execute(context)
 
         if any(s in pattern for s in ["iso.", "STRING"]):
             logger.error("TC1: DUT accepted weak-algorithm user2 — FAIL")
@@ -179,7 +194,9 @@ class TC1SNMPv3Positive(TestCase):
         logger.info("TC1: weak-algorithm user2 correctly rejected")
         StepRunner([
             AnalyzePcapStep("snmp || udp.port == 161 || udp.port == 162"),
-            WiresharkPacketScreenshotStep(),
+            WiresharkPacketScreenshotStep(
+                caption="TC1 Step 4 — Wireshark confirms DUT returned authentication failure for weak-algorithm SNMPv3 request",
+            ),
         ]).run(context)
         return True
 

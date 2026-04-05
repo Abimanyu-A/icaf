@@ -57,7 +57,10 @@ class TC6HTTPSValidLogin(TestCase):
             WaitStep(2),
         ]).run(context)
 
-        BrowserScreenshotStep("tc6_login_page.png").execute(context)
+        BrowserScreenshotStep(
+            "tc6_login_page.png",
+            caption="TC6 Step 1 — DUT HTTPS management login page loaded, TLS connection established",
+        ).execute(context)
 
         StepRunner([
             FillInputStep(user_sel,   username),
@@ -66,7 +69,10 @@ class TC6HTTPSValidLogin(TestCase):
             WaitStep(3),
         ]).run(context)
 
-        BrowserScreenshotStep("tc6_after_login.png").execute(context)
+        BrowserScreenshotStep(
+            "tc6_after_login.png",
+            caption="TC6 Step 2 — Dashboard accessible after valid credentials submitted, confirming successful HTTPS mutual authentication",
+        ).execute(context)
         StepRunner([PcapStopStep()]).run(context)
 
         # Check dashboard is accessible
@@ -84,7 +90,10 @@ class TC6HTTPSValidLogin(TestCase):
             logger.info("TC6: HTTPS valid login succeeded — dashboard accessible")
             StepRunner([
                 AnalyzePcapStep("tls"),
-                WiresharkPacketScreenshotStep("tls"),
+                WiresharkPacketScreenshotStep(
+                    "tls",
+                    caption="TC6 Step 2 — Wireshark shows TLS handshake completed with valid certificate exchange for HTTPS session",
+                ),
             ]).run(context)
         else:
             logger.error("TC6: Dashboard not accessible after valid login")

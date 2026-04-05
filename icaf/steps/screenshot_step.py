@@ -6,9 +6,10 @@ from icaf.utils.logger import logger
 
 class ScreenshotStep(Step):
 
-    def __init__(self, terminal):
+    def __init__(self, terminal, caption: str = ""):
         super().__init__("Capture screenshot")
         self.terminal = terminal
+        self.caption = caption
 
     def _generate_filename(self, context):
         testcase = context.current_testcase
@@ -39,6 +40,6 @@ class ScreenshotStep(Step):
         saved_path = terminal.capture(full_path)
 
         # Store ACTUAL saved path
-        context.current_testcase.add_evidence(screenshot=saved_path)
+        context.current_testcase.add_evidence(screenshot=saved_path, caption=self.caption)
 
         return saved_path

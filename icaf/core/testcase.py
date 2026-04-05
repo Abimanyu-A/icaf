@@ -13,12 +13,13 @@ class TestCase:
 
         self.steps.append(step)
 
-    def add_evidence(self, command=None, output=None, screenshot=None):
+    def add_evidence(self, command=None, output=None, screenshot=None, caption=None):
 
         self.evidence.append({
             "command": command,
             "output": output,
-            "screenshot": screenshot
+            "screenshot": screenshot,
+            "caption": caption,
         })
 
     def pass_test(self):

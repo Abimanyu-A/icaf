@@ -29,9 +29,10 @@ class BrowserScreenshotStep(Step):
         ``browser_<timestamp>.png``.
     """
 
-    def __init__(self, filename: str | None = None):
+    def __init__(self, filename: str | None = None, caption: str = ""):
         super().__init__("Browser screenshot")
         self.filename = filename
+        self.caption = caption
 
     def execute(self, context) -> None:
         clause   = context.clause
@@ -50,4 +51,4 @@ class BrowserScreenshotStep(Step):
 
         logger.info("BrowserScreenshot saved: %s", file_path)
 
-        context.current_testcase.add_evidence(screenshot=file_path)
+        context.current_testcase.add_evidence(screenshot=file_path, caption=self.caption)

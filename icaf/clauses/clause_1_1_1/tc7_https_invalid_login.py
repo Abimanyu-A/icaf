@@ -27,7 +27,7 @@ class TC7HTTPSInvalidLogin(TestCase):
         )
 
     def run(self, context):
-        
+
         raw_url = context.profile.get("web.login_url", context.web_login_url)
 
         ip = getattr(context, "ssh_ip", None) or getattr(context, "ip", None)
@@ -70,7 +70,10 @@ class TC7HTTPSInvalidLogin(TestCase):
             WaitStep(2),
         ]).run(context)
 
-        BrowserScreenshotStep("tc7_login_page.png").execute(context)
+        BrowserScreenshotStep(
+            "tc7_login_page.png",
+            caption="TC7 Step 1 — DUT HTTPS management login page loaded prior to invalid credential attempt",
+        ).execute(context)
 
         StepRunner([
             FillInputStep(user_sel,   username),
@@ -79,7 +82,10 @@ class TC7HTTPSInvalidLogin(TestCase):
             WaitStep(3),
         ]).run(context)
 
-        BrowserScreenshotStep("tc7_after_bad_login.png").execute(context)
+        BrowserScreenshotStep(
+            "tc7_after_bad_login.png",
+            caption="TC7 Step 2 — Login error displayed after invalid credentials submitted, dashboard not accessible",
+        ).execute(context)
         StepRunner([PcapStopStep()]).run(context)
 
         # Error must be shown; dashboard must NOT be accessible
@@ -88,7 +94,10 @@ class TC7HTTPSInvalidLogin(TestCase):
 
         StepRunner([
             AnalyzePcapStep("tls"),
-            WiresharkPacketScreenshotStep("tls"),
+            WiresharkPacketScreenshotStep(
+                "tls",
+                caption="TC7 Step 2 — Wireshark shows TLS session terminated after HTTP 401/403 response from DUT",
+            ),
         ]).run(context)
 
         # Inter-TC cooldown

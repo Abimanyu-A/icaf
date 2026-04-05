@@ -149,7 +149,7 @@ class WiresharkPacketScreenshotStep(Step):
     Falls back gracefully to a tshark text dump in headless environments.
     """
 
-    def __init__(self, filter_expr: str = ""):
+    def __init__(self, filter_expr: str = "", caption: str = ""):
         """
         Parameters
         ----------
@@ -160,6 +160,7 @@ class WiresharkPacketScreenshotStep(Step):
         """
         super().__init__("Capture Wireshark Packet Screenshot")
         self.extra_filter = filter_expr
+        self.caption = caption
 
     def execute(self, context) -> None:
         pcap  = context.pcap_file
@@ -237,7 +238,7 @@ class WiresharkPacketScreenshotStep(Step):
 
         if captured:
             logger.info("Wireshark screenshot saved: %s", screenshot_file)
-            context.current_testcase.add_evidence(screenshot=screenshot_file)
+            context.current_testcase.add_evidence(screenshot=screenshot_file, caption=self.caption)
         else:
             # GUI screenshot failed entirely — produce text dump instead
             logger.warning(

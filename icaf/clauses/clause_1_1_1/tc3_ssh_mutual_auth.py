@@ -53,17 +53,37 @@ class TC3SSHMutualAuth(TestCase):
         StepRunner([CommandStep("tester", display_ssh_status, settle_time=2)]).run(context)
         ExpectOneOfStep("tester", ["SSH version", "version : 2", "Enable", "#"],
                         timeout=8).execute(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC3 Step 1 — DUT SSH server status confirms SSHv2 is enabled and running",
+        ).execute(context)
         StepRunner([SessionResetStep("tester", post_reset_delay=2)]).run(context)
 
     # ── nmap cipher scan ──────────────────────────────────────────────────
 
     def _nmap_scan(self, context):
-        cmd = f"nmap -p 22 --script ssh2-enum-algos {context.ssh_ip}"
-        StepRunner([CommandStep("tester", cmd, settle_time=10)]).run(context)
+        cmd = f"nmap -p 22 --script ssh2-enum-algos {context.ssh_ip} -oN tc3_nmap_scan.txt"
+
+        StepRunner([
+            CommandStep("tester", cmd, settle_time=15, capture_evidence=False),
+        ]).run(context)
+
         ExpectOneOfStep("tester", ["Nmap done", "kex_algorithms", "encryption_algorithms"],
                         timeout=30).execute(context)
-        ScreenshotStep("tester").execute(context)
+
+        # Read the full file directly — no terminal truncation
+        with open("tc3_nmap_scan.txt", "r") as f:
+            full_output = f.read()
+
+        context.current_testcase.add_evidence(
+            command=cmd,
+            output=full_output,
+        )
+
+        ScreenshotStep(
+            "tester",
+            caption="TC3 Step 2 — nmap ssh2-enum-algos scan shows supported key exchange and encryption algorithms on DUT port 22",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
     # ── positive case ─────────────────────────────────────────────────────
@@ -85,7 +105,10 @@ class TC3SSHMutualAuth(TestCase):
         if pattern in fail_prompts:
             logger.error("TC3 Positive: SSH failed before password prompt")
             StepRunner([PcapStopStep()]).run(context)
-            ScreenshotStep("tester").execute(context)
+            ScreenshotStep(
+                "tester",
+                caption="TC3 Step 3 — SSH connection attempt failed before password prompt (early rejection evidence)",
+            ).execute(context)
             return False
 
         StepRunner([InputStep("tester", context.ssh_password)]).run(context)
@@ -93,7 +116,10 @@ class TC3SSHMutualAuth(TestCase):
             "tester", success_p + fail_prompts, timeout=12).execute(context)
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC3 Step 3 — SSH session established with correct credentials, DUT shell prompt received",
+        ).execute(context)
 
         if p2 in fail_prompts:
             logger.error("TC3 Positive: DUT rejected correct credentials")
@@ -103,7 +129,10 @@ class TC3SSHMutualAuth(TestCase):
         logger.info("TC3 Positive: SSH session established")
         StepRunner([
             AnalyzePcapStep("ssh"),
-            WiresharkPacketScreenshotStep("ssh"),
+            WiresharkPacketScreenshotStep(
+                "ssh",
+                caption="TC3 Step 3 — Wireshark shows successful SSH handshake and encrypted session establishment",
+            ),
             SessionResetStep("tester", post_reset_delay=2),
         ]).run(context)
         return True
@@ -113,20 +142,28 @@ class TC3SSHMutualAuth(TestCase):
     def _negative(self, context):
         ssh_cmd  = self._ssh_cmd(context)
         bad_pass = context.profile.get("ssh.bad_password", "WrongPass@999!")
-        pass_p   = context.profile.get_list("ssh.password_prompt")
-
+        
+        # Priority order matters - put more specific patterns FIRST
         retry_msgs = [
             "Permission denied, please try again",
+            "Permission denied",
+            "Sorry, try again",
         ]
-
+        
         final_fail_msgs = [
             "Permission denied (publickey,password)",
             "Too many authentication failures",
             "Disconnected",
             "Connection closed",
         ]
-
-        max_attempts = 5
+        
+        # Password prompt - should be matched LAST
+        pass_p = context.profile.get_list("ssh.password_prompt")
+        
+        # Combined list in PRIORITY order (most specific/important first)
+        all_patterns = final_fail_msgs + retry_msgs + pass_p
+        
+        max_attempts = 3
         attempts = 0
 
         StepRunner([
@@ -136,39 +173,59 @@ class TC3SSHMutualAuth(TestCase):
 
         while attempts < max_attempts:
             pattern, _ = ExpectOneOfStep(
-                "tester", pass_p + retry_msgs + final_fail_msgs, timeout=15
+                "tester", all_patterns, timeout=15
             ).execute(context)
 
-            if pattern in pass_p:
-                attempts += 1
-                logger.info(f"TC3 Negative: Attempt {attempts} - sending bad password")
-                StepRunner([InputStep("tester", bad_pass)]).run(context)
-                continue
-
-            if pattern in retry_msgs:
-                logger.info("TC3 Negative: Retry message received")
-                continue
-
+            # Check final failure FIRST (highest priority)
             if pattern in final_fail_msgs:
                 logger.info("TC3 Negative: Final rejection — '%s'", pattern)
 
                 StepRunner([PcapStopStep()]).run(context)
-                ScreenshotStep("tester").execute(context)
+                ScreenshotStep(
+                    "tester",
+                    caption="TC3 Step 4 — DUT rejected SSH login after repeated wrong password attempts, connection closed",
+                ).execute(context)
 
                 StepRunner([
                     AnalyzePcapStep("ssh"),
-                    WiresharkPacketScreenshotStep("ssh"),
+                    WiresharkPacketScreenshotStep(
+                        "ssh",
+                        caption="TC3 Step 4 — Wireshark shows SSH disconnect packet confirming DUT terminated session after auth failures",
+                    ),
                     ClearTerminalStep("tester"),
                 ]).run(context)
                 return True
 
-            logger.error("TC3 Negative: Unexpected behavior")
+            # Check retry messages next
+            if pattern in retry_msgs:
+                logger.info("TC3 Negative: Retry message received — '%s'", pattern)
+                # After retry message, expect password prompt next
+                # Continue loop to get the password prompt
+                continue
+
+            # Finally, check if it's a password prompt
+            if pattern in pass_p:
+                attempts += 1
+                if attempts <= max_attempts:
+                    logger.info(f"TC3 Negative: Attempt {attempts} - sending bad password")
+                    StepRunner([InputStep("tester", bad_pass, settle_time=7)]).run(context)
+                    continue
+                else:
+                    logger.error("TC3 Negative: Max attempts reached")
+                    break
+
+            # Unexpected pattern
+            logger.error(f"TC3 Negative: Unexpected pattern '{pattern}'")
             break
 
+        # If we exit the loop without proper rejection
         logger.error("TC3 Negative: Max attempts reached without proper rejection")
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC3 Step 4 — FAIL: DUT did not reject SSH connection after maximum wrong password attempts",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
         return False

@@ -54,7 +54,10 @@ class TC5SSHIncorrectPublicKey(TestCase, SSHMixin):
             StepRunner([InputStep("tester", "y")]).run(context)
             ExpectOneOfStep("tester", ["Your public key", "SHA256"], timeout=10).execute(context)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC5 Step 1 — Unregistered ECDSA key pair generated for negative test",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
         logger.info("TC5: Wrong key generated")
@@ -68,7 +71,10 @@ class TC5SSHIncorrectPublicKey(TestCase, SSHMixin):
 
         self.sftp_upload(context, expanded_path, remote_path)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC5 Step 2 — Unregistered public key uploaded to DUT filesystem (not added to authorized_keys)",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
         logger.info("TC5: Wrong key exported to DUT (NOT authorized)")
@@ -97,7 +103,10 @@ class TC5SSHIncorrectPublicKey(TestCase, SSHMixin):
             },
         )
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC5 Step 3 — Test user created on DUT without any authorized public key configured",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
         logger.info("TC5: User created WITHOUT authorized_keys")
@@ -122,7 +131,10 @@ class TC5SSHIncorrectPublicKey(TestCase, SSHMixin):
         )
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC5 Step 4 — SSH login with unregistered public key rejected by DUT, permission denied",
+        ).execute(context)
 
         if success:
             logger.error("TC5: WRONG key accepted — FAIL")
@@ -132,7 +144,10 @@ class TC5SSHIncorrectPublicKey(TestCase, SSHMixin):
 
         StepRunner([
             AnalyzePcapStep("ssh"),
-            WiresharkPacketScreenshotStep("ssh"),
+            WiresharkPacketScreenshotStep(
+                "ssh",
+                caption="TC5 Step 4 — Wireshark confirms SSH session terminated after public key was not accepted by DUT",
+            ),
         ]).run(context)
 
         return True
@@ -144,7 +159,10 @@ class TC5SSHIncorrectPublicKey(TestCase, SSHMixin):
 
         self.dut_delete_local_user(context, username=username)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC5 Teardown — Test user deleted from DUT after test completion",
+        ).execute(context)
         logger.info("TC5: User '%s' deleted", username)
 
     # ── entry point ──────────────────────────────────────────────────────

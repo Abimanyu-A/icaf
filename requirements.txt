@@ -4,4 +4,6 @@ selenium
 pyyaml
 python-docx
 pyautogui
+openpyxl
+python-dotenv
 pandas

@@ -57,10 +57,12 @@ class TC4SSHCorrectPublicKey(TestCase, SSHMixin):
         StepRunner([CommandStep("tester", f"cat {key_path}.pub", settle_time=2)]).run(context)
         ExpectOneOfStep("tester", ["ecdsa-sha2", "ssh-"], timeout=6).execute(context)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC4 Step 1 — ECDSA-256 key pair generated; public key content displayed for verification",
+        ).execute(context)
 
         StepRunner([ClearTerminalStep("tester")]).run(context)
-
 
         logger.info("TC4: ECDSA key pair generated")
 
@@ -73,7 +75,10 @@ class TC4SSHCorrectPublicKey(TestCase, SSHMixin):
 
         self.sftp_upload(context, expanded_path, remote_path)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC4 Step 2 — Public key file transferred to DUT via SFTP",
+        ).execute(context)
 
         StepRunner([ClearTerminalStep("tester")]).run(context)
 
@@ -111,7 +116,10 @@ class TC4SSHCorrectPublicKey(TestCase, SSHMixin):
             },
         )
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC4 Step 3a — Test user created on DUT with network-operator role and SSH service type",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
         logger.info("TC4: User '%s' created on DUT", username)
 
@@ -126,7 +134,10 @@ class TC4SSHCorrectPublicKey(TestCase, SSHMixin):
             },
         )
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC4 Step 3b — Public key registered in authorized_keys for test user on DUT",
+        ).execute(context)
         StepRunner([ClearTerminalStep("tester")]).run(context)
         logger.info("TC4: authorized_keys configured on DUT for user '%s'", username)
 
@@ -152,7 +163,10 @@ class TC4SSHCorrectPublicKey(TestCase, SSHMixin):
         )
 
         StepRunner([ClearTerminalStep("tester")]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC4 Teardown — Test user deleted from DUT after test completion",
+        ).execute(context)
 
         self.ssh_close_session(context)   # exits su -
         self.ssh_close_session(context)   # exits SSH
@@ -175,16 +189,22 @@ class TC4SSHCorrectPublicKey(TestCase, SSHMixin):
 
         StepRunner([PcapStopStep()]).run(context)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC4 Step 4 — SSH login using correct ECDSA public key succeeded, DUT granted access without password",
+        ).execute(context)
 
         if success:
             logger.info("TC4: Public key login successful")
             StepRunner([
                 AnalyzePcapStep("ssh"),
-                WiresharkPacketScreenshotStep("ssh"),
+                WiresharkPacketScreenshotStep(
+                    "ssh",
+                    caption="TC4 Step 4 — Wireshark confirms SSH public key authentication exchange completed successfully",
+                ),
             ]).run(context)
             CommandStep("tester", "exit", settle_time=4, capture_evidence=False)
-            
+
             return True
 
         self.log_ssh_failure(context, "TC4", pattern)

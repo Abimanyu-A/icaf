@@ -164,6 +164,36 @@ def _build_oam_rows(context):
 def _redact(value: str) -> str:
     return value if _SHOW_CREDS else "[REDACTED]"
 
+def add_caption_with_numbering(doc, caption_text, caption_type="Figure"):
+    """
+    Add a styled caption with automatic numbering.
+    
+    Args:
+        doc: Word document object
+        caption_text: The caption text
+        caption_type: "Figure" or "Table"
+    """
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Pt
+    
+    # Get next number for this caption type
+    if not hasattr(doc, '_caption_counters'):
+        doc._caption_counters = {}
+    doc._caption_counters[caption_type] = doc._caption_counters.get(caption_type, 0) + 1
+    num = doc._caption_counters[caption_type]
+    
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.space_after = Pt(12)
+    
+    run = p.add_run(f"{caption_type} {num}: {caption_text}")
+    run.font.size = Pt(9)
+    run.font.italic = True
+    run.font.name = "Arial"
+    run.font.color.rgb = MID_GREY
+    return p
+
 
 class CommandRenderer:
     """
@@ -1057,6 +1087,7 @@ class Clause111Report:
                     command    = ev.get("command")
                     output_raw = ev.get("output")
                     screenshot = ev.get("screenshot")
+                    caption    = ev.get("caption") or ""
 
                     if command:
                         label_value_para(doc, "Command Executed", command)
@@ -1077,6 +1108,8 @@ class Clause111Report:
                                 bold=True,
                             )
                             add_screenshot(doc, clean_path, width_inches=5.5)
+                            if caption:
+                                add_caption_with_numbering(doc, caption, "Figure") 
                             spacer(doc, small=True)
                         else:
                             fname = str(screenshot).split("/")[-1]

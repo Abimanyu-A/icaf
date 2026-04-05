@@ -78,7 +78,10 @@ class TC8GRPCGNMIMutualAuth(TestCase, SSHMixin):
             StepRunner([CommandStep("tester", cmd, settle_time=4)]).run(context)
             ExpectOneOfStep("tester", expected, timeout=12).execute(context)
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC8 Step 1 — CA certificate, gRPC server key/cert, and PKCS#12 bundle generated successfully",
+        ).execute(context)
         logger.info("TC8: PKI certificates and PKCS#12 bundle generated")
 
     # ── transfer to DUT ────────────────────────────────────────────────────
@@ -93,7 +96,10 @@ class TC8GRPCGNMIMutualAuth(TestCase, SSHMixin):
             (f"{pki}/ca.pem",   "/ca.pem"),
         ])
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC8 Step 2 — PKCS#12 certificate bundle and CA certificate transferred to DUT via SFTP",
+        ).execute(context)
         logger.info("TC8: Certificates transferred to DUT")
 
     # ── DUT PKI + gRPC configuration ──────────────────────────────────────
@@ -136,7 +142,10 @@ class TC8GRPCGNMIMutualAuth(TestCase, SSHMixin):
             ("save force",                                      ["saved", "#", "Y/N"]),
         ])
 
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC8 Step 3 — PKI domain configured, gRPC enabled with mutual TLS, gRPC user created on DUT",
+        ).execute(context)
         self.ssh_close_session(context)
         logger.info("TC8: DUT PKI and gRPC configured")
 
@@ -175,13 +184,19 @@ class TC8GRPCGNMIMutualAuth(TestCase, SSHMixin):
         ).execute(context)
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC8 Step 4 — gRPC Login RPC with valid credentials returned token_id, confirming mutual TLS authentication",
+        ).execute(context)
 
         if any(tp in pattern for tp in token_p):
             logger.info("TC8 Positive: token_id returned — mutual auth confirmed")
             StepRunner([
                 AnalyzePcapStep(f"tcp.port == {port}"),
-                WiresharkPacketScreenshotStep("tls"),
+                WiresharkPacketScreenshotStep(
+                    "tls",
+                    caption="TC8 Step 4 — Wireshark shows TLS 1.3 mutual authentication handshake completed for gRPC session",
+                ),
                 ClearTerminalStep("tester"),
             ]).run(context)
             return True
@@ -211,7 +226,10 @@ class TC8GRPCGNMIMutualAuth(TestCase, SSHMixin):
         ).execute(context)
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC8 Step 5 — gRPC Login RPC with wrong password returned error, no token_id issued by DUT",
+        ).execute(context)
 
         if any(tp in pattern for tp in token_p):
             logger.error("TC8 Negative: DUT issued token for wrong credentials — FAIL")
@@ -221,7 +239,10 @@ class TC8GRPCGNMIMutualAuth(TestCase, SSHMixin):
         logger.info("TC8 Negative: DUT correctly rejected wrong credentials — '%s'", pattern)
         StepRunner([
             AnalyzePcapStep(f"tcp.port == {port}"),
-            WiresharkPacketScreenshotStep("tls"),
+            WiresharkPacketScreenshotStep(
+                "tls",
+                caption="TC8 Step 5 — Wireshark confirms gRPC unauthenticated response, TLS session closed after credential failure",
+            ),
             ClearTerminalStep("tester"),
         ]).run(context)
         return True

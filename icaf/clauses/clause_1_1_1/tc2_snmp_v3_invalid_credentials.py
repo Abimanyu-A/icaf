@@ -52,13 +52,19 @@ class TC2SNMPv3InvalidCredentials(TestCase):
         ).execute(context)
 
         StepRunner([PcapStopStep()]).run(context)
-        ScreenshotStep("tester").execute(context)
+        ScreenshotStep(
+            "tester",
+            caption="TC2 Step 1 — SNMPv3 walk with incorrect auth password returns authentication failure, access denied",
+        ).execute(context)
 
         if any(a in pattern for a in auth_fail + timeout_p):
             logger.info("TC2: SNMPv3 authentication failure confirmed — '%s'", pattern)
             StepRunner([
                 AnalyzePcapStep("snmp"),
-                WiresharkPacketScreenshotStep("snmp"),
+                WiresharkPacketScreenshotStep(
+                    "snmp",
+                    caption="TC2 Step 1 — Wireshark shows SNMP report PDU indicating authentication failure from DUT",
+                ),
             ]).run(context)
             result = True
         else:
