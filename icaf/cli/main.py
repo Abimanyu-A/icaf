@@ -15,6 +15,7 @@ from rich.live import Live
 from icaf.config.settings import initialize_directories
 from icaf.utils.logger import logger
 from icaf.core.engine import Engine
+from icaf.cli.preflight import register_doctor_command
 
 # Load .env
 load_dotenv()
@@ -29,6 +30,8 @@ app = typer.Typer(
 
 profile_app = typer.Typer(help="Manage DUT profiles")
 app.add_typer(profile_app, name="profile")
+
+register_doctor_command(app)
 
 
 def show_banner():

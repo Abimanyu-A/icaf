@@ -7,3 +7,4 @@ pyautogui
 openpyxl
 python-dotenv
 pandas
+requests

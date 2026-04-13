@@ -726,7 +726,7 @@ def _ai_enrich_observation(
 # ─────────────────────────────────────────────────────────────────────────────
 
 class Clause111Report:
-    """Generates the full TCAF Word report for ITSAR clause 1.1.1."""
+    """Generates the full ICAF Word report for ITSAR clause 1.1.1."""
 
     def __init__(self, context: Any, results: list[dict]) -> None:
         self._ctx   = context
@@ -1365,7 +1365,7 @@ class Clause111Report:
 
     def generate(self) -> str:
         os.makedirs(self.output_dir, exist_ok=True)
-        report_path = os.path.join(self.output_dir, "tcaf_report.docx")
+        report_path = os.path.join(self.output_dir, "icaf_report.docx")
 
         doc = build_doc_with_header_footer(
             dut_name    = self.meta["dut_name"],
